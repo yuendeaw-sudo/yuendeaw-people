@@ -21,6 +21,26 @@ const WORK_MODE: { v: string; label: string }[] = [
   { v: "project", label: "ตามโปรเจกต์" },
 ];
 
+// 10 ธนาคารหลักของไทย (เก็บชื่อไทยลงคอลัมน์ bank_name)
+const THAI_BANKS = [
+  "ธนาคารกสิกรไทย (KBANK)",
+  "ธนาคารไทยพาณิชย์ (SCB)",
+  "ธนาคารกรุงเทพ (BBL)",
+  "ธนาคารกรุงไทย (KTB)",
+  "ธนาคารกรุงศรีอยุธยา (BAY)",
+  "ธนาคารทหารไทยธนชาต (ttb)",
+  "ธนาคารออมสิน (GSB)",
+  "ธนาคารเพื่อการเกษตรและสหกรณ์ (ธ.ก.ส.)",
+  "ธนาคารยูโอบี (UOB)",
+  "ธนาคารซีไอเอ็มบีไทย (CIMB)",
+];
+
+// เลขที่บัญชีไทยมาตรฐาน 10 หลัก จัดรูปแบบ XXX-X-XXXXX-X
+function formatThaiAccount(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 10);
+  return [d.slice(0, 3), d.slice(3, 4), d.slice(4, 9), d.slice(9, 10)].filter(Boolean).join("-");
+}
+
 function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
   return (
     <Card>
@@ -82,7 +102,7 @@ export function EmployeeForm({
     bank_account_type: e.bank_account_type ?? "",
     bank_branch: e.bank_branch ?? "",
     social_security: e.social_security ?? "enrolled",
-    withholding_tax: e.withholding_tax ?? "",
+    withholding_tax: e.withholding_tax ? "yes" : "no", // flag: หัก / ไม่หัก
     emergency_name: ec.name ?? "",
     emergency_phone: ec.phone ?? "",
     emergency_relation: ec.relation ?? "",
@@ -142,7 +162,8 @@ export function EmployeeForm({
             bank_account_type: f.bank_account_type || null,
             bank_branch: f.bank_branch || null,
             social_security: f.social_security || "enrolled",
-            withholding_tax: f.withholding_tax === "" ? null : Number(f.withholding_tax),
+            // flag only: 1 = หัก ณ ที่จ่าย, 0 = ไม่หัก (ยอดจริงคำนวณตอนจ่ายตามวันทำงาน)
+            withholding_tax: f.withholding_tax === "yes" ? 1 : 0,
           }
         : {}),
       emergency_contact: {
@@ -299,15 +320,18 @@ export function EmployeeForm({
                 { id: "not_enrolled", name: "ไม่ขึ้นประกันสังคม" },
               ]}
             />
-            <Input
-              label="หัก ณ ที่จ่าย / เดือน (บาท)"
-              type="number"
-              value={String(f.withholding_tax)}
+            <Select
+              label="หัก ณ ที่จ่าย"
+              value={f.withholding_tax}
               onChange={(v) => set("withholding_tax", v)}
+              options={[
+                { id: "no", name: "ไม่หัก" },
+                { id: "yes", name: "หัก ณ ที่จ่าย (3%)" },
+              ]}
             />
           </div>
           <p className="text-xs text-muted mt-2">
-            ประกันสังคมคำนวณอัตโนมัติ 5% ของเงินเดือน (สูงสุด 750 บาท/เดือน) · หัก ณ ที่จ่าย กรอกเองตามจริง
+            ประกันสังคมคำนวณอัตโนมัติ 5% ของเงินเดือน (สูงสุด 750 บาท/เดือน) · หัก ณ ที่จ่าย เป็นแค่สถานะ (ยอดจริงคำนวณตอนจ่ายตามวันทำงาน)
           </p>
         </Section>
       )}
@@ -315,9 +339,29 @@ export function EmployeeForm({
       {canSensitive && (
         <Section title="ข้อมูลธนาคาร (sensitive)" icon="Landmark">
           <div className="grid sm:grid-cols-2 gap-4">
-            <Input label="ธนาคาร" value={f.bank_name} onChange={(v) => set("bank_name", v)} />
-            <Input label="เลขที่บัญชี" value={f.bank_account} onChange={(v) => set("bank_account", v)} />
-            <Input label="ประเภทบัญชี" value={f.bank_account_type} onChange={(v) => set("bank_account_type", v)} />
+            <Select
+              label="ธนาคาร"
+              value={f.bank_name}
+              onChange={(v) => set("bank_name", v)}
+              options={THAI_BANKS.map((b) => ({ id: b, name: b }))}
+              placeholder="— เลือกธนาคาร —"
+            />
+            <Input
+              label="เลขที่บัญชี"
+              value={f.bank_account}
+              onChange={(v) => set("bank_account", formatThaiAccount(v))}
+              placeholder="XXX-X-XXXXX-X"
+            />
+            <Select
+              label="ประเภทบัญชี"
+              value={f.bank_account_type}
+              onChange={(v) => set("bank_account_type", v)}
+              options={[
+                { id: "ออมทรัพย์", name: "ออมทรัพย์" },
+                { id: "กระแสรายวัน", name: "กระแสรายวัน" },
+              ]}
+              placeholder="— เลือก —"
+            />
             <Input label="สาขา" value={f.bank_branch} onChange={(v) => set("bank_branch", v)} />
           </div>
         </Section>
@@ -357,17 +401,26 @@ function Input({
   onChange,
   type = "text",
   required,
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
   required?: boolean;
+  placeholder?: string;
 }) {
   return (
     <div>
       <label className="label">{label}</label>
-      <input className="input" type={type} value={value} required={required} onChange={(e) => onChange(e.target.value)} />
+      <input
+        className="input"
+        type={type}
+        value={value}
+        required={required}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
     </div>
   );
 }

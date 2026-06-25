@@ -123,7 +123,7 @@ export default async function ProfilePage() {
                 amount={Number(comp.amount)}
                 compType={comp.comp_type}
                 ssoEnrolled={(emp.social_security ?? "enrolled") !== "not_enrolled"}
-                withholdingTax={emp.withholding_tax != null ? Number(emp.withholding_tax) : null}
+                withholding={Number(emp.withholding_tax) > 0}
               />
             ) : (
               <p className="text-sm text-muted">ยังไม่มีข้อมูลค่าตอบแทน</p>

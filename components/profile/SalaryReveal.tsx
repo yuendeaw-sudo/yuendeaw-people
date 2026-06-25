@@ -27,12 +27,12 @@ export function SalaryReveal({
   amount,
   compType,
   ssoEnrolled = true,
-  withholdingTax = null,
+  withholding = false,
 }: {
   amount: number;
   compType: string;
   ssoEnrolled?: boolean;
-  withholdingTax?: number | null;
+  withholding?: boolean;
 }) {
   const [show, setShow] = useState(false);
   const label = COMP_LABEL[compType] || compType;
@@ -65,8 +65,8 @@ export function SalaryReveal({
         <Line label="ประกันสังคม / เดือน">
           {ssoEnrolled ? (show ? formatTHB(computeSSO(amount)) : MASK) : "—"}
         </Line>
-        <Line label="หัก ณ ที่จ่าย / เดือน">
-          {withholdingTax != null ? (show ? formatTHB(withholdingTax) : MASK) : "—"}
+        <Line label="หัก ณ ที่จ่าย">
+          {withholding ? "หัก ณ ที่จ่าย (3%)" : "ไม่หัก"}
         </Line>
       </div>
     </div>

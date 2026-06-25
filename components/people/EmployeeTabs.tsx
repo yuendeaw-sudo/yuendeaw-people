@@ -201,8 +201,14 @@ export function EmployeeTabs({
                   value={ssoEnrolled ? (reveal ? formatTHB(computeSSO(salaryNum)) : MASK) : "—"}
                 />
                 <Row
-                  label="หัก ณ ที่จ่าย (ต่อเดือน)"
-                  value={e.withholding_tax != null ? (reveal ? formatTHB(Number(e.withholding_tax)) : MASK) : "—"}
+                  label="หัก ณ ที่จ่าย"
+                  value={
+                    Number(e.withholding_tax) > 0 ? (
+                      <span className="text-gold">หัก ณ ที่จ่าย (3%)</span>
+                    ) : (
+                      <span className="text-muted">ไม่หัก</span>
+                    )
+                  }
                 />
                 <div className="h-px bg-sand/60 my-3" />
                 <Row label="ธนาคาร" value={e.bank_name} />
