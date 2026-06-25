@@ -84,6 +84,8 @@ export function EmployeeForm({
     bank_account: e.bank_account ?? "",
     bank_account_type: e.bank_account_type ?? "",
     bank_branch: e.bank_branch ?? "",
+    social_security: e.social_security ?? "enrolled",
+    withholding_tax: e.withholding_tax ?? "",
     emergency_name: ec.name ?? "",
     emergency_phone: ec.phone ?? "",
     emergency_relation: ec.relation ?? "",
@@ -142,6 +144,8 @@ export function EmployeeForm({
             bank_account: f.bank_account || null,
             bank_account_type: f.bank_account_type || null,
             bank_branch: f.bank_branch || null,
+            social_security: f.social_security || "enrolled",
+            withholding_tax: f.withholding_tax === "" ? null : Number(f.withholding_tax),
           }
         : {}),
       emergency_contact: {
@@ -288,6 +292,26 @@ export function EmployeeForm({
             <Input label="จำนวนเงิน (บาท)" type="number" value={comp.amount} onChange={(v) => setComp({ ...comp, amount: v })} />
             <Input label="มีผลตั้งแต่" type="date" value={comp.effective_date} onChange={(v) => setComp({ ...comp, effective_date: v })} />
           </div>
+          <div className="grid sm:grid-cols-2 gap-4 mt-4">
+            <Select
+              label="สิทธิ์ประกันสังคม"
+              value={f.social_security}
+              onChange={(v) => set("social_security", v)}
+              options={[
+                { id: "enrolled", name: "ขึ้นสิทธิ์ประกันสังคม" },
+                { id: "not_enrolled", name: "ไม่ขึ้นประกันสังคม" },
+              ]}
+            />
+            <Input
+              label="หัก ณ ที่จ่าย / เดือน (บาท)"
+              type="number"
+              value={String(f.withholding_tax)}
+              onChange={(v) => set("withholding_tax", v)}
+            />
+          </div>
+          <p className="text-xs text-muted mt-2">
+            ประกันสังคมคำนวณอัตโนมัติ 5% ของเงินเดือน (สูงสุด 750 บาท/เดือน) · หัก ณ ที่จ่าย กรอกเองตามจริง
+          </p>
         </Section>
       )}
 

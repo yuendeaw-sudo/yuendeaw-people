@@ -11,6 +11,13 @@ type Tab = { key: string; label: string; icon: string };
 
 const MASK = "••••••";
 
+// Thai social security: 5% of wage, wage floored at 1,650 and capped at 15,000 → max 750/mo.
+function computeSSO(salary?: number | null) {
+  if (!salary || salary <= 0) return 0;
+  const wage = Math.min(Math.max(salary, 1650), 15000);
+  return Math.round(wage * 0.05);
+}
+
 function Row({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-0.5 py-2 border-b border-sand/50 last:border-0">
@@ -80,6 +87,8 @@ export function EmployeeTabs({
 
   const ec = e.emergency_contact ?? {};
   const latestComp = comp?.[0];
+  const salaryNum = latestComp ? Number(latestComp.amount) : null;
+  const ssoEnrolled = (e.social_security ?? "enrolled") !== "not_enrolled";
 
   const TABS: Tab[] = [
     { key: "personal", label: "ข้อมูลพนักงาน", icon: "IdCard" },
@@ -169,27 +178,65 @@ export function EmployeeTabs({
                   </button>
                 }
               >
-                <div className="rounded-xl2 bg-sand/40 p-4 mb-3">
-                  <div className="text-xs text-muted">ค่าตอบแทนปัจจุบัน</div>
+                <Row label="ประเภทพนักงาน" value={(e as any).employment_types?.name} />
+                <Row
+                  label="สิทธิ์ประกันสังคม"
+                  value={
+                    ssoEnrolled ? (
+                      <span className="text-mint">ขึ้นสิทธิ์ประกันสังคม</span>
+                    ) : (
+                      <span className="text-muted">ไม่ขึ้นประกันสังคม</span>
+                    )
+                  }
+                />
+                <div className="rounded-xl2 bg-sand/40 p-4 my-3">
+                  <div className="text-xs text-muted">เงินเดือน / ค่าตอบแทนปัจจุบัน</div>
                   <div className="text-3xl font-extrabold mt-1">
-                    {reveal ? formatTHB(latestComp ? Number(latestComp.amount) : null) : MASK}
+                    {reveal ? formatTHB(salaryNum) : MASK}
                     {latestComp && <span className="text-sm font-normal text-muted"> / {latestComp.comp_type}</span>}
                   </div>
                 </div>
+                <Row
+                  label="ประกันสังคม (ต่อเดือน)"
+                  value={ssoEnrolled ? (reveal ? formatTHB(computeSSO(salaryNum)) : MASK) : "—"}
+                />
+                <Row
+                  label="หัก ณ ที่จ่าย (ต่อเดือน)"
+                  value={e.withholding_tax != null ? (reveal ? formatTHB(Number(e.withholding_tax)) : MASK) : "—"}
+                />
+                <div className="h-px bg-sand/60 my-3" />
                 <Row label="ธนาคาร" value={e.bank_name} />
                 <Row label="เลขที่บัญชี" value={e.bank_account ? (reveal ? e.bank_account : MASK) : null} />
                 <Row label="ประเภทบัญชี" value={e.bank_account_type} />
                 <Row label="สาขา" value={e.bank_branch} />
               </Block>
-              {comp && comp.length > 1 && (
-                <Block title="ประวัติค่าตอบแทน" icon="History">
+              {comp && comp.length > 0 && (
+                <Block title="ประวัติการปรับเพิ่ม / ลดเงินเดือน" icon="History">
                   <div className="space-y-2">
-                    {comp.map((c, i) => (
-                      <div key={i} className="flex items-center justify-between rounded-xl bg-sand/40 px-3 py-2 text-sm">
-                        <span className="font-semibold">{reveal ? formatTHB(Number(c.amount)) : MASK}</span>
-                        <span className="text-xs text-muted">{c.comp_type} · ตั้งแต่ {formatThaiDate(c.effective_date)}</span>
-                      </div>
-                    ))}
+                    {comp.map((c, i) => {
+                      const older = comp[i + 1]; // list is newest-first
+                      const delta = older ? Number(c.amount) - Number(older.amount) : 0;
+                      return (
+                        <div key={i} className="flex items-center justify-between rounded-xl bg-sand/40 px-3 py-2 text-sm">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold">{reveal ? formatTHB(Number(c.amount)) : MASK}</span>
+                            {reveal && delta !== 0 && (
+                              <span
+                                className={`chip text-[11px] ${
+                                  delta > 0 ? "bg-mint-soft text-mint" : "bg-rose-soft text-rose"
+                                }`}
+                              >
+                                {delta > 0 ? "▲ ปรับเพิ่ม" : "▼ ปรับลด"} {formatTHB(Math.abs(delta))}
+                              </span>
+                            )}
+                            {!older && <span className="chip text-[11px] bg-sand text-muted">เริ่มต้น</span>}
+                          </div>
+                          <span className="text-xs text-muted">
+                            {c.comp_type} · ตั้งแต่ {formatThaiDate(c.effective_date)}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </Block>
               )}
