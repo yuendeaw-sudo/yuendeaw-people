@@ -41,6 +41,14 @@ function formatThaiAccount(v: string) {
   return [d.slice(0, 3), d.slice(3, 4), d.slice(4, 9), d.slice(9, 10)].filter(Boolean).join("-");
 }
 
+// เลขบัตรประชาชนไทย 13 หลัก จัดรูปแบบ X-XXXX-XXXXX-XX-X
+function formatThaiID(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 13);
+  return [d.slice(0, 1), d.slice(1, 5), d.slice(5, 10), d.slice(10, 12), d.slice(12, 13)]
+    .filter(Boolean)
+    .join("-");
+}
+
 function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
   return (
     <Card>
@@ -230,10 +238,20 @@ export function EmployeeForm({
           <Input label="ชื่อ (EN)" value={f.first_name_en} onChange={(v) => set("first_name_en", v)} />
           <Input label="นามสกุล (EN)" value={f.last_name_en} onChange={(v) => set("last_name_en", v)} />
           <Input label="ชื่อเล่น (EN)" value={f.nickname_en} onChange={(v) => set("nickname_en", v)} />
-          <Input label="เลขหนังสือเดินทาง" value={f.passport_no} onChange={(v) => set("passport_no", v)} />
+          <Input
+            label="เลขหนังสือเดินทาง"
+            value={f.passport_no}
+            onChange={(v) => set("passport_no", v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 9))}
+            placeholder="เช่น AA1234567"
+          />
           {canSensitive && (
             <>
-              <Input label="เลขบัตรประชาชน" value={f.national_id} onChange={(v) => set("national_id", v)} />
+              <Input
+                label="เลขบัตรประชาชน"
+                value={f.national_id}
+                onChange={(v) => set("national_id", formatThaiID(v))}
+                placeholder="X-XXXX-XXXXX-XX-X"
+              />
               <Input label="วันเกิด" type="date" value={f.birth_date} onChange={(v) => set("birth_date", v)} />
             </>
           )}
