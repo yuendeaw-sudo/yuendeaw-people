@@ -53,6 +53,10 @@ function Block({
 const AUDIT_LABEL: Record<string, { label: string; icon: string; tone: string }> = {
   self_update_profile: { label: "พนักงานแก้ข้อมูลติดต่อ", icon: "Pencil", tone: "grape" },
   self_update_avatar: { label: "พนักงานเปลี่ยนรูปโปรไฟล์", icon: "Camera", tone: "grape" },
+  self_upload_document: { label: "พนักงานอัปโหลดเอกสาร", icon: "FileUp", tone: "grape" },
+  self_delete_document: { label: "พนักงานลบเอกสาร", icon: "FileX", tone: "grape" },
+  upload_document: { label: "เพิ่มเอกสาร (HR)", icon: "FileUp", tone: "sand" },
+  delete_document: { label: "ลบเอกสาร (HR)", icon: "FileX", tone: "sand" },
   view_salary: { label: "เปิดดูค่าตอบแทน", icon: "Eye", tone: "sand" },
 };
 
@@ -241,6 +245,7 @@ export function EmployeeTabs({
               {auditLogs.map((a) => {
                 const m = AUDIT_LABEL[a.action] ?? { label: a.action, icon: "Activity", tone: "sand" };
                 const changed = a.meta?.changed as string[] | undefined;
+                const detail = a.meta?.title || changed?.join(", ") || "";
                 return (
                   <div key={a.id} className="flex gap-3">
                     <div className="grid place-items-center size-7 rounded-full bg-grape-soft text-grape shrink-0">
@@ -250,7 +255,7 @@ export function EmployeeTabs({
                       <div className="font-medium">{m.label}</div>
                       <div className="text-xs text-muted">
                         {a.actor_email || "ระบบ"} · {formatThaiDate(a.created_at)}
-                        {changed?.length ? ` · ${changed.join(", ")}` : ""}
+                        {detail ? ` · ${detail}` : ""}
                       </div>
                     </div>
                   </div>

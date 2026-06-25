@@ -1,11 +1,13 @@
 import { getAccessContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, PageHeader, Badge, statusBadge, EmptyState } from "@/components/ui";
 import { formatThaiDate } from "@/lib/utils";
 import { Icon } from "@/components/Icon";
 import { SalaryReveal } from "@/components/profile/SalaryReveal";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
 import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
+import { EmployeeDocuments } from "@/components/people/EmployeeDocuments";
 
 function Field({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
@@ -48,6 +50,13 @@ export default async function ProfilePage() {
     .order("effective_date", { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  // own documents (admin client — reading one's own files, no RLS guesswork)
+  const { data: myDocs } = await createAdminClient()
+    .from("documents")
+    .select("id, title, doc_type, storage_path, created_at")
+    .eq("employee_id", ctx.employeeId)
+    .order("created_at", { ascending: false });
 
   if (!emp) return null;
   const et = (emp as any).employment_types;
@@ -117,6 +126,23 @@ export default async function ProfilePage() {
             <p className="text-xs text-muted mt-3">
               ซ่อนไว้โดยค่าเริ่มต้น กดรูปตาเพื่อแสดง · ข้อมูลนี้เห็นได้เฉพาะคุณและผู้มีสิทธิ์
             </p>
+          </Card>
+
+          {/* Self-service documents — visible to HR/owner on the employee file */}
+          <Card>
+            <h3 className="font-semibold mb-1 flex items-center gap-2">
+              <Icon name="FolderArchive" className="size-4 text-grape" /> เอกสารของฉัน
+            </h3>
+            <p className="text-xs text-muted mb-4">
+              อัปโหลดเองได้เลย — HR / ผู้ดูแลจะเห็นในแฟ้มพนักงานของคุณ
+            </p>
+            <EmployeeDocuments
+              employeeId={ctx.employeeId}
+              initialDocs={myDocs ?? []}
+              canEdit
+              canView
+              zones={["id", "house_reg", "bank_book", "other"]}
+            />
           </Card>
         </div>
       </div>

@@ -13,25 +13,32 @@ type Doc = {
   created_at?: string;
 };
 
-const ZONES: { type: string; label: string; icon: string }[] = [
+const ALL_ZONES: { type: string; label: string; icon: string }[] = [
   { type: "id", label: "สำเนาบัตรประชาชน", icon: "IdCard" },
   { type: "house_reg", label: "สำเนาทะเบียนบ้าน", icon: "House" },
+  { type: "bank_book", label: "สำเนา Book Bank", icon: "Landmark" },
   { type: "contract", label: "สัญญาจ้าง", icon: "FileSignature" },
   { type: "other", label: "เอกสารอื่น ๆ", icon: "Files" },
 ];
+
+const KNOWN_TYPES = ["id", "house_reg", "bank_book", "contract"];
 
 export function EmployeeDocuments({
   employeeId,
   initialDocs,
   canEdit,
   canView,
+  zones,
 }: {
   employeeId: string;
   initialDocs: Doc[];
   canEdit: boolean;
   canView: boolean;
+  /** which zones to show; defaults to all. e.g. ["id","house_reg","bank_book","other"] */
+  zones?: string[];
 }) {
   const [docs, setDocs] = useState<Doc[]>(initialDocs || []);
+  const ZONES = zones ? ALL_ZONES.filter((z) => zones.includes(z.type)) : ALL_ZONES;
 
   if (!canView && !canEdit) {
     return (
@@ -48,7 +55,7 @@ export function EmployeeDocuments({
   // group known types; everything else falls under "other"
   const byType = (t: string) =>
     docs.filter((d) =>
-      t === "other" ? !["id", "house_reg", "contract"].includes(d.doc_type || "") : d.doc_type === t
+      t === "other" ? !KNOWN_TYPES.includes(d.doc_type || "") : d.doc_type === t
     );
 
   return (
