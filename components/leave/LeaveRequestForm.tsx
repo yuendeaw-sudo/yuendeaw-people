@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/Icon";
+import { compressImage } from "@/lib/image";
 import type { LeaveLimits } from "@/lib/leave";
 
 type LeaveType = { id: string; name: string; key?: string; requires_evidence?: boolean };
@@ -77,8 +78,9 @@ export function LeaveRequestForm({
     // upload evidence first (if any)
     let evidencePath: string | null = null;
     if (file) {
+      const compressed = await compressImage(file, { maxDim: 2200, quality: 0.82 });
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", compressed);
       const res = await fetch("/api/leave/evidence", { method: "POST", body: fd });
       if (!res.ok) {
         setError(await res.text().catch(() => "อัปโหลดไฟล์ไม่สำเร็จ"));

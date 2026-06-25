@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui";
 import { Icon } from "@/components/Icon";
+import { compressImage } from "@/lib/image";
 
 export function AvatarUpload({
   name,
@@ -20,9 +21,11 @@ export function AvatarUpload({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  async function upload(file: File) {
+  async function upload(rawFile: File) {
     setBusy(true);
     setErr(null);
+    // รูปโปรไฟล์ไม่ต้องใหญ่ — ย่อ 512px พอ
+    const file = await compressImage(rawFile, { maxDim: 512, quality: 0.85, minBytes: 120 * 1024 });
     const fd = new FormData();
     fd.append("file", file);
     try {

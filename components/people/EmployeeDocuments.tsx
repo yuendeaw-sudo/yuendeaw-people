@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { formatThaiDate } from "@/lib/utils";
+import { compressImage } from "@/lib/image";
 
 type Doc = {
   id: string;
@@ -98,9 +99,11 @@ function DocZone({
   const [drag, setDrag] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  async function upload(file: File) {
+  async function upload(rawFile: File) {
     setBusy(true);
     setErr(null);
+    // บีบรูปใหญ่ให้เบาลงก่อนอัปโหลด (ยังคมพอสำหรับพิมพ์) · PDF ปล่อยไว้
+    const file = await compressImage(rawFile, { maxDim: 2200, quality: 0.82 });
     const fd = new FormData();
     fd.append("file", file);
     fd.append("employeeId", employeeId);
