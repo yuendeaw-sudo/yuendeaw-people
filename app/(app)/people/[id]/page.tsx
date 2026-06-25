@@ -7,6 +7,7 @@ import { Avatar, Badge, statusBadge, EmptyState, PageHeader } from "@/components
 import { Icon } from "@/components/Icon";
 import { EmployeeTabs } from "@/components/people/EmployeeTabs";
 import { QuestEvidence } from "@/components/quests/QuestEvidence";
+import { InviteButton } from "@/components/people/InviteButton";
 
 function tenure(start?: string | null) {
   if (!start) return null;
@@ -93,9 +94,17 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
             </div>
           </div>
           {editHref && (
-            <Link href={editHref} className="btn-outline">
-              <Icon name="Pencil" className="size-4" /> แก้ไข
-            </Link>
+            <div className="flex flex-col items-end gap-2">
+              <Link href={editHref} className="btn-outline">
+                <Icon name="Pencil" className="size-4" /> แก้ไข
+              </Link>
+              <InviteButton
+                employeeId={emp.id}
+                email={emp.email ?? null}
+                hasAccount={!!emp.user_id}
+                invitedAt={emp.invited_at ?? null}
+              />
+            </div>
           )}
         </div>
       </div>

@@ -7,6 +7,9 @@ import { AppShell } from "@/components/AppShell";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await getAccessContext();
   if (!ctx) redirect("/login");
+  // Allowlist: only the owner or someone linked to an employee record gets in.
+  // Anyone else (e.g. a Google login that isn't on the team) waits for an invite.
+  if (!ctx.isOwner && !ctx.employeeId) redirect("/pending");
 
   const supabase = await createClient();
   const { data: appUser } = await supabase
