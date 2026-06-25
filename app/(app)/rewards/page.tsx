@@ -4,24 +4,24 @@ import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, Card, Badge, Avatar, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/Icon";
-import { formatTHB, formatThaiDate } from "@/lib/utils";
-import { BONUS_CATEGORIES, REQUEST_STATUS } from "@/lib/phase2-labels";
+import { formatReward, formatThaiDate } from "@/lib/utils";
+import { REWARD_TYPES, REQUEST_STATUS } from "@/lib/phase2-labels";
 import { BonusForm } from "@/components/rewards/BonusForm";
 import { BonusActions } from "@/components/rewards/BonusActions";
 
 export default async function RewardsPage() {
   const ctx = (await getAccessContext())!;
-  if (!can(ctx, "rewards", "view")) redirect("/dashboard");
+  if (!can(ctx, "rewards", "view") && !ctx.isOwner) redirect("/dashboard");
   const supabase = await createClient();
-  const canCreate = can(ctx, "rewards", "create");
-  const canApprove = can(ctx, "rewards", "approve");
+  // ผู้ให้รางวัล/สวัสดิการ = เจ้าของเท่านั้น
+  const canCreate = ctx.isOwner;
+  const canApprove = ctx.isOwner;
 
-  const [{ data: benefits }, { data: bonuses }, { data: emps }] = await Promise.all([
-    supabase.from("benefits").select("id, name, category").eq("is_active", true),
+  const [{ data: bonuses }, { data: emps }] = await Promise.all([
     supabase
       .from("bonus_requests")
       .select(
-        "id, category, amount, reason, status, payment_status, created_at, employees!bonus_requests_employee_id_fkey(first_name, nickname)"
+        "id, category, amount, unit, reason, status, payment_status, created_at, employees!bonus_requests_employee_id_fkey(first_name, nickname)"
       )
       .order("created_at", { ascending: false }),
     supabase.from("employees").select("id, first_name, nickname").order("first_name"),
@@ -29,16 +29,19 @@ export default async function RewardsPage() {
 
   const employees = (emps ?? []).map((e) => ({ id: e.id, name: e.nickname || e.first_name }));
   const list = bonuses ?? [];
+  // รวมยอด "เงิน" ที่อนุมัติแล้วเท่านั้น (ไม่นับ % หรือ วัน)
   const totalApproved = list
-    .filter((b) => b.status === "approved" || b.status === "paid")
+    .filter((b) => (b.status === "approved" || b.status === "paid") && (b.unit ?? "baht") === "baht")
     .reduce((s, b) => s + Number(b.amount || 0), 0);
+
+  const typeOf = (cat: string) => REWARD_TYPES.find((t) => t.v === cat);
 
   return (
     <div>
       <PageHeader
         title="รางวัล & สวัสดิการ"
         icon="Gift"
-        subtitle={`อนุมัติแล้วรวม ${formatTHB(totalApproved)}`}
+        subtitle={`อนุมัติแล้วรวม ${formatReward(totalApproved, "baht")}`}
         action={canCreate ? <BonusForm employees={employees} proposerId={ctx.employeeId} /> : undefined}
       />
 
@@ -47,28 +50,34 @@ export default async function RewardsPage() {
           <Icon name="Sparkles" className="size-4 text-gold" /> แค็ตตาล็อกสวัสดิการ
         </h2>
         <div className="flex flex-wrap gap-2">
-          {(benefits ?? []).map((b) => (
-            <span key={b.id} className="chip border border-sand">
-              <Icon name="Gift" className="size-3.5 text-gold" /> {b.name}
+          {REWARD_TYPES.map((t) => (
+            <span key={t.v} className="chip border border-sand">
+              <Icon name={t.icon} className="size-3.5 text-gold" /> {t.label}
+              {t.unit === "salary" && <span className="text-muted text-[11px]">(% / บาท)</span>}
+              {t.unit === "days" && <span className="text-muted text-[11px]">(วัน)</span>}
             </span>
           ))}
         </div>
+        {canCreate && (
+          <p className="text-xs text-muted mt-3">เฉพาะเจ้าของเป็นผู้ให้รางวัล/สวัสดิการแก่พนักงาน</p>
+        )}
       </Card>
 
-      <h2 className="text-sm font-semibold text-muted mb-3">คำขอโบนัส / รางวัล</h2>
+      <h2 className="text-sm font-semibold text-muted mb-3">รายการรางวัล / สวัสดิการ</h2>
       {list.length ? (
         <Card>
           <div className="space-y-2">
             {list.map((b) => {
               const st = REQUEST_STATUS[b.status] ?? { label: b.status, tone: "sand" };
-              const cat = BONUS_CATEGORIES.find((c) => c.v === b.category)?.label ?? b.category;
+              const t = typeOf(b.category);
               const emp = (b as any).employees;
               return (
                 <div key={b.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-sand/40 px-3 py-3">
                   <Avatar name={emp?.nickname || emp?.first_name} size={38} />
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold flex items-center gap-2">
-                      {formatTHB(Number(b.amount))} <span className="text-muted font-normal text-sm">· {cat}</span>
+                      {formatReward(Number(b.amount), b.unit)}
+                      <span className="text-muted font-normal text-sm">· {t?.label ?? b.category}</span>
                       {String(b.reason ?? "").startsWith("Growth Quest:") && (
                         <span className="chip bg-brand-soft text-gold text-[10px]">🎯 จาก Quest</span>
                       )}
@@ -86,7 +95,7 @@ export default async function RewardsPage() {
           </div>
         </Card>
       ) : (
-        <EmptyState icon="Gift" title="ยังไม่มีคำขอโบนัส" subtitle="กดปุ่ม 'เสนอโบนัส' เพื่อเริ่ม" />
+        <EmptyState icon="Gift" title="ยังไม่มีรายการ" subtitle="กดปุ่ม 'ให้รางวัล / สวัสดิการ' เพื่อเริ่ม" />
       )}
     </div>
   );

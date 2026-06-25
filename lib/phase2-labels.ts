@@ -55,6 +55,19 @@ export const BONUS_CATEGORIES: { v: string; label: string }[] = [
   { v: "other", label: "อื่น ๆ" },
 ];
 
+// แค็ตตาล็อกรางวัล/สวัสดิการที่เจ้าของให้พนักงานได้
+// unit: "baht" = เงินบาท · "salary" = ปรับเงินเดือน (เลือก % หรือ บาท) · "days" = จำนวนวัน
+export const REWARD_TYPES: { v: string; label: string; icon: string; unit: "baht" | "salary" | "days" }[] = [
+  { v: "salary", label: "ปรับเงินเดือน", icon: "TrendingUp", unit: "salary" },
+  { v: "performance", label: "โบนัสผลงาน", icon: "Award", unit: "baht" },
+  { v: "travel", label: "ทริปท่องเที่ยว", icon: "Plane", unit: "baht" },
+  { v: "health", label: "สุขภาพ / ความงาม", icon: "HeartPulse", unit: "baht" },
+  { v: "learning", label: "งบเรียนรู้", icon: "GraduationCap", unit: "baht" },
+  { v: "equipment", label: "ค่าอุปกรณ์", icon: "Laptop", unit: "baht" },
+  { v: "meal_transport", label: "ค่าอาหาร / เดินทาง", icon: "Utensils", unit: "baht" },
+  { v: "leave_days", label: "ลาพักร้อน (วัน)", icon: "Palmtree", unit: "days" },
+];
+
 export const PERF_DIMENSIONS: { key: string; label: string }[] = [
   { key: "output", label: "Output — ส่งงานได้จริง" },
   { key: "quality", label: "Quality — คุณภาพงาน" },

@@ -14,6 +14,14 @@ export function formatTHB(n: number | null | undefined) {
   }).format(n);
 }
 
+/** Format a reward amount by its unit: บาท / percent / days. */
+export function formatReward(amount: number | null | undefined, unit?: string | null) {
+  if (amount == null) return "—";
+  if (unit === "percent") return `${amount}%`;
+  if (unit === "days") return `${amount} วัน`;
+  return formatTHB(amount);
+}
+
 const TH_MONTHS = [
   "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
   "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
