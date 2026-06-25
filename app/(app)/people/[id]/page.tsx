@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Avatar, Badge, statusBadge, EmptyState, PageHeader } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { EmployeeTabs } from "@/components/people/EmployeeTabs";
+import { QuestEvidence } from "@/components/quests/QuestEvidence";
 
 function tenure(start?: string | null) {
   if (!start) return null;
@@ -98,6 +99,8 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
           )}
         </div>
       </div>
+
+      <QuestEvidence employeeId={id} />
 
       <EmployeeTabs e={emp} comp={comp} documents={docs ?? []} canSensitive={canSensitive} editHref={editHref} />
     </div>

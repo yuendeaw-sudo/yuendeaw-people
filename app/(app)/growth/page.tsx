@@ -18,17 +18,26 @@ export default async function GrowthPage() {
   const canCreate = can(ctx, "growth", "create");
   const canApprove = can(ctx, "growth", "approve") || ctx.isOwner;
 
-  const [{ data: tracks }, { data: levels }, { data: promos }, { data: emps }] = await Promise.all([
+  const [{ data: tracks }, { data: levels }, { data: promos }, { data: emps }, { data: badgeRows }] = await Promise.all([
     supabase.from("career_tracks").select("id, name").order("sort_order"),
     supabase.from("career_levels").select("id, track_id, level_order, title, responsibility, required_skill, evidence_needed").order("level_order"),
     supabase
       .from("promotion_requests")
       .select(
-        "id, status, manager_comment, effective_date, created_at, employees!promotion_requests_employee_id_fkey(first_name, nickname), career_levels!promotion_requests_to_level_id_fkey(title)"
+        "id, employee_id, status, manager_comment, effective_date, created_at, employees!promotion_requests_employee_id_fkey(first_name, nickname), career_levels!promotion_requests_to_level_id_fkey(title)"
       )
       .order("created_at", { ascending: false }),
     supabase.from("employees").select("id, first_name, nickname").order("first_name"),
+    supabase.from("employee_badges").select("employee_id, points"),
   ]);
+
+  // Growth Quest evidence per employee (badges + points) — informs promotion decisions
+  const questStats: Record<string, { badges: number; points: number }> = {};
+  for (const b of badgeRows ?? []) {
+    const s = (questStats[b.employee_id] ??= { badges: 0, points: 0 });
+    s.badges += 1;
+    s.points += Number(b.points || 0);
+  }
 
   const allLevels = levels ?? [];
   const employees = (emps ?? []).map((e) => ({ id: e.id, name: e.nickname || e.first_name }));
@@ -37,9 +46,9 @@ export default async function GrowthPage() {
   return (
     <div>
       <PageHeader
-        title="Career & Growth"
+        title="เส้นทางอาชีพ (Career Path)"
         icon="TrendingUp"
-        subtitle="เส้นทางการเติบโต และการเลื่อนตำแหน่ง"
+        subtitle="บันไดการเติบโต และการเลื่อนตำแหน่ง"
         action={canCreate ? <PromotionForm employees={employees} levels={levelOpts} proposerId={ctx.employeeId} /> : undefined}
       />
 
@@ -65,6 +74,11 @@ export default async function GrowthPage() {
                       {p.effective_date && ` · มีผล ${formatThaiDate(p.effective_date)}`}
                       {p.manager_comment && ` · ${p.manager_comment}`}
                     </div>
+                    {questStats[(p as any).employee_id] && (
+                      <div className="text-xs text-gold font-medium mt-0.5">
+                        🎯 หลักฐาน: {questStats[(p as any).employee_id].badges} Badge · {questStats[(p as any).employee_id].points} แต้ม
+                      </div>
+                    )}
                   </div>
                   <Badge tone={st.tone}>{st.label}</Badge>
                   <PromotionActions id={p.id} status={p.status} canApprove={canApprove} />

@@ -67,8 +67,11 @@ export default async function RewardsPage() {
                 <div key={b.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-sand/40 px-3 py-3">
                   <Avatar name={emp?.nickname || emp?.first_name} size={38} />
                   <div className="min-w-0 flex-1">
-                    <div className="font-semibold">
+                    <div className="font-semibold flex items-center gap-2">
                       {formatTHB(Number(b.amount))} <span className="text-muted font-normal text-sm">· {cat}</span>
+                      {String(b.reason ?? "").startsWith("Growth Quest:") && (
+                        <span className="chip bg-brand-soft text-gold text-[10px]">🎯 จาก Quest</span>
+                      )}
                     </div>
                     <div className="text-xs text-muted truncate">
                       {emp?.nickname || emp?.first_name} · {formatThaiDate(b.created_at)}

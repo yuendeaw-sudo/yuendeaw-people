@@ -77,6 +77,19 @@ export function QuestApproval({ q, badges = [] }: { q: any; badges?: { name: str
         employee_id: q.employee_id, badge_name: name, tier, quest_id: q.id, points,
       });
     }
+    // cash reward → flow into the Rewards ledger (one source of truth for payouts)
+    const reward = q.awarded_reward ?? {};
+    if (reward.kind === "cash" && Number(reward.cash) > 0) {
+      await createClient().from("bonus_requests").insert({
+        employee_id: q.employee_id,
+        category: "project",
+        amount: Number(reward.cash),
+        reason: `Growth Quest: ${q.title}`,
+        proposed_by: q.employee_id,
+        status: "approved",
+        payment_status: "pending",
+      });
+    }
     await notifyEmployee(q.employee_id, {
       title: `ภารกิจสำเร็จ 🎉 ได้ ${points} แต้ม${name ? ` + Badge ${name}` : ""}`,
       body: q.title,
