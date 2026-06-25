@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Icon } from "@/components/Icon";
 import { Badge, statusBadge } from "@/components/ui";
 import { formatThaiDate, formatTHB } from "@/lib/utils";
+import { EmployeeDocuments } from "@/components/people/EmployeeDocuments";
 
 type Tab = { key: string; label: string; icon: string };
 
@@ -194,27 +195,12 @@ export function EmployeeTabs({
         {/* DOCUMENTS */}
         {tab === "documents" && (
           <Block title="เอกสารสำคัญพนักงาน" icon="FileText">
-            {documents.length ? (
-              <div className="grid sm:grid-cols-2 gap-2">
-                {documents.map((d) => (
-                  <a
-                    key={d.id}
-                    href={d.external_url ?? "#"}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-3 rounded-xl bg-sand/40 px-3 py-2.5 hover:bg-sand/70 transition"
-                  >
-                    <Icon name="FileText" className="size-5 text-grape shrink-0" />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">{d.title}</div>
-                      {d.doc_type && <div className="text-[11px] text-muted">{d.doc_type}</div>}
-                    </div>
-                  </a>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted">ยังไม่มีเอกสาร — เพิ่มได้ที่หน้าแก้ไขพนักงาน หรือ Knowledge Base</p>
-            )}
+            <EmployeeDocuments
+              employeeId={e.id}
+              initialDocs={documents}
+              canEdit={!!editHref}
+              canView={canSensitive}
+            />
           </Block>
         )}
 

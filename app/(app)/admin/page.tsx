@@ -60,7 +60,7 @@ export default async function AdminPage() {
 
       <Card>
         <h2 className="font-semibold mb-4 flex items-center gap-2">
-          <Icon name="Building2" className="size-4 text-brand" /> แผนก & ทีม
+          <Icon name="Users" className="size-4 text-brand" /> ทีม (และแผนก ถ้ามี)
         </h2>
         <OrgManager departments={departments ?? []} teams={teams ?? []} />
       </Card>

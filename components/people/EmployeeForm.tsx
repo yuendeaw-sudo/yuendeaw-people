@@ -233,10 +233,8 @@ export function EmployeeForm({
           <Select label="สถานะ" value={f.status} onChange={(v) => set("status", v)} options={STATUS.map((s) => ({ id: s.v, name: s.label }))} />
           <Input label="ตำแหน่ง" value={f.position_title} onChange={(v) => set("position_title", v)} />
           <Select label="รูปแบบการทำงาน" value={f.work_mode} onChange={(v) => set("work_mode", v)} options={WORK_MODE.map((s) => ({ id: s.v, name: s.label }))} placeholder="— เลือก —" />
-          <Select label="แผนก" value={f.department_id} onChange={(v) => set("department_id", v)} options={options.departments} placeholder="— เลือก —" />
           <Select label="ทีม" value={f.team_id} onChange={(v) => set("team_id", v)} options={options.teams} placeholder="— เลือก —" />
           <Select label="หัวหน้างาน" value={f.manager_id} onChange={(v) => set("manager_id", v)} options={options.managers} placeholder="— ไม่มี —" />
-          <div />
           <Input label="วันเริ่มงาน" type="date" value={f.start_date} onChange={(v) => set("start_date", v)} />
           <Input label="สิ้นสุดทดลองงาน" type="date" value={f.probation_end_date} onChange={(v) => set("probation_end_date", v)} />
         </div>

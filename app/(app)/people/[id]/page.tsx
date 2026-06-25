@@ -59,7 +59,7 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
 
   const { data: docs } = await supabase
     .from("documents")
-    .select("id, title, doc_type, external_url")
+    .select("id, title, doc_type, storage_path, external_url, created_at")
     .eq("employee_id", id)
     .order("created_at", { ascending: false });
 
