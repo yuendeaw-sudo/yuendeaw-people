@@ -17,11 +17,8 @@ const STATUS: { v: string; label: string }[] = [
 ];
 const WORK_MODE: { v: string; label: string }[] = [
   { v: "office", label: "เข้าออฟฟิศ" },
-  { v: "hybrid", label: "ไฮบริด" },
   { v: "remote", label: "รีโมท" },
-  { v: "production", label: "ออกกอง / Production" },
   { v: "project", label: "ตามโปรเจกต์" },
-  { v: "no_fixed", label: "ไม่กำหนดเวลา" },
 ];
 
 function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
