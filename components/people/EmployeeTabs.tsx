@@ -50,18 +50,26 @@ function Block({
   );
 }
 
+const AUDIT_LABEL: Record<string, { label: string; icon: string; tone: string }> = {
+  self_update_profile: { label: "พนักงานแก้ข้อมูลติดต่อ", icon: "Pencil", tone: "grape" },
+  self_update_avatar: { label: "พนักงานเปลี่ยนรูปโปรไฟล์", icon: "Camera", tone: "grape" },
+  view_salary: { label: "เปิดดูค่าตอบแทน", icon: "Eye", tone: "sand" },
+};
+
 export function EmployeeTabs({
   e,
   comp,
   documents,
   canSensitive,
   editHref,
+  auditLogs = [],
 }: {
   e: any;
   comp: any[] | null;
   documents: any[];
   canSensitive: boolean;
   editHref: string | null;
+  auditLogs?: any[];
 }) {
   const [tab, setTab] = useState("personal");
   const [reveal, setReveal] = useState(false);
@@ -229,6 +237,26 @@ export function EmployeeTabs({
                     </div>
                   </div>
                 ))}
+              {/* Real audit trail — who changed what (HR/owner only) */}
+              {auditLogs.map((a) => {
+                const m = AUDIT_LABEL[a.action] ?? { label: a.action, icon: "Activity", tone: "sand" };
+                const changed = a.meta?.changed as string[] | undefined;
+                return (
+                  <div key={a.id} className="flex gap-3">
+                    <div className="grid place-items-center size-7 rounded-full bg-grape-soft text-grape shrink-0">
+                      <Icon name={m.icon} className="size-3.5" />
+                    </div>
+                    <div className="text-sm">
+                      <div className="font-medium">{m.label}</div>
+                      <div className="text-xs text-muted">
+                        {a.actor_email || "ระบบ"} · {formatThaiDate(a.created_at)}
+                        {changed?.length ? ` · ${changed.join(", ")}` : ""}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
               <div className="flex gap-3">
                 <div className="grid place-items-center size-7 rounded-full bg-sand text-muted shrink-0">
                   <Icon name="RefreshCw" className="size-3.5" />
@@ -239,7 +267,9 @@ export function EmployeeTabs({
                 </div>
               </div>
             </div>
-            <p className="text-[11px] text-muted mt-4">ประวัติแบบละเอียด (ใครแก้อะไร) จะเชื่อมกับ Audit Log ในเฟสถัดไป</p>
+            {!auditLogs.length && (
+              <p className="text-[11px] text-muted mt-4">ยังไม่มีบันทึกการแก้ไขจากระบบ</p>
+            )}
           </Block>
         )}
       </div>

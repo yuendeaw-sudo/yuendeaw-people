@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getAccessContext, audit } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Avatar, Badge, statusBadge, EmptyState, PageHeader } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { EmployeeTabs } from "@/components/people/EmployeeTabs";
@@ -63,6 +64,19 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
     .eq("employee_id", id)
     .order("created_at", { ascending: false });
 
+  // audit trail for this employee — who changed what (HR/owner only)
+  let auditLogs: any[] = [];
+  if (canSensitive) {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("audit_logs")
+      .select("id, action, actor_email, meta, created_at")
+      .eq("entity_id", id)
+      .order("created_at", { ascending: false })
+      .limit(30);
+    auditLogs = data ?? [];
+  }
+
   const sb = statusBadge(emp.status);
   const et = (emp as any).employment_types;
   const editHref = can(ctx, "people", "edit") ? `/people/${id}/edit` : null;
@@ -111,7 +125,7 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
 
       <QuestEvidence employeeId={id} />
 
-      <EmployeeTabs e={emp} comp={comp} documents={docs ?? []} canSensitive={canSensitive} editHref={editHref} />
+      <EmployeeTabs e={emp} comp={comp} documents={docs ?? []} canSensitive={canSensitive} editHref={editHref} auditLogs={auditLogs} />
     </div>
   );
 }
