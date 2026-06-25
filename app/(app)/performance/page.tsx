@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getAccessContext } from "@/lib/auth";
-import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, Card, Badge, Avatar, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/Icon";
@@ -11,9 +10,9 @@ import { ReviewForm } from "@/components/performance/ReviewForm";
 
 export default async function PerformancePage() {
   const ctx = (await getAccessContext())!;
-  if (!can(ctx, "performance", "view")) redirect("/dashboard");
+  if (!ctx.isOwner) redirect("/dashboard"); // Performance = เฉพาะเจ้าของ
   const supabase = await createClient();
-  const canCreate = can(ctx, "performance", "create");
+  const canCreate = ctx.isOwner;
 
   const [{ data: templates }, { data: reviews }, { data: emps }] = await Promise.all([
     supabase.from("performance_templates").select("id, name, review_cycle, dimensions").eq("is_active", true).order("created_at"),

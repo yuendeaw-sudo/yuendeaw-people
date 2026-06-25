@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getAccessContext } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { PageHeader, Card, StatCard, EmptyState } from "@/components/ui";
+import { PageHeader, StatCard, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { QuestForm } from "@/components/quests/QuestForm";
 import { QuestCard } from "@/components/quests/QuestCard";

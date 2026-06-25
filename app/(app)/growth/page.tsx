@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getAccessContext } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { PageHeader, Card, Badge, Avatar, EmptyState } from "@/components/ui";
+import { PageHeader, Card, Badge, Avatar } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { formatThaiDate } from "@/lib/utils";
 import { REQUEST_STATUS } from "@/lib/phase2-labels";

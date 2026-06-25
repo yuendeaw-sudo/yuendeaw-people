@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Icon } from "@/components/Icon";
 import { Badge, statusBadge } from "@/components/ui";
 import { formatThaiDate, formatTHB } from "@/lib/utils";
+import { workModeLabel } from "@/lib/phase2-labels";
 import { EmployeeDocuments } from "@/components/people/EmployeeDocuments";
 
 type Tab = { key: string; label: string; icon: string };
@@ -159,7 +160,7 @@ export function EmployeeTabs({
             <Row label="ทีม" value={e.teams?.name} />
             <Row label="ตำแหน่ง" value={e.position_title} />
             <Row label="หัวหน้างาน" value={e.manager?.nickname || e.manager?.first_name} />
-            <Row label="รูปแบบการทำงาน" value={e.work_mode} />
+            <Row label="รูปแบบการทำงาน" value={workModeLabel(e.work_mode)} />
             <Row label="สิ้นสุดทดลองงาน" value={e.probation_end_date ? formatThaiDate(e.probation_end_date) : null} />
           </Block>
         )}

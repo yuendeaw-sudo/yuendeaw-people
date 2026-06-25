@@ -23,7 +23,6 @@ export function Logo({ size = 36, className = "" }: { size?: number; className?:
           ยด
         </span>
       )}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/brand/logo.png"
         alt="ยืนเดี่ยว The Comedy Hub"

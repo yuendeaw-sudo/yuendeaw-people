@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getAccessContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { PageHeader, Card, Badge, EmptyState } from "@/components/ui";
+import { PageHeader, Card, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { formatThaiDate } from "@/lib/utils";
 import { TIERS, questType } from "@/lib/quests";

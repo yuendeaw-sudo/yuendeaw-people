@@ -48,7 +48,7 @@ export const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { key: "people", label: "บุคคลากร", href: "/people", icon: "Users", module: "people" },
       { key: "applications", label: "ใบสมัคร", href: "/applications", icon: "FileUser", module: "applications" },
-      { key: "performance", label: "Performance", href: "/performance", icon: "Target", module: "performance" },
+      { key: "performance", label: "Performance", href: "/performance", icon: "Target", ownerOnly: true },
       { key: "rewards", label: "รางวัล & สวัสดิการ", href: "/rewards", icon: "Gift", module: "rewards" },
       { key: "incidents", label: "วินัย & เหตุการณ์", href: "/incidents", icon: "ShieldAlert", module: "incidents" },
     ],

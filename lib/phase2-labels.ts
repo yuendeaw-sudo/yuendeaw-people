@@ -47,13 +47,23 @@ export const REQUEST_STATUS: Record<string, { label: string; tone: string }> = {
   paid: { label: "จ่ายแล้ว", tone: "mint" },
 };
 
-export const BONUS_CATEGORIES: { v: string; label: string }[] = [
-  { v: "performance", label: "โบนัสผลงาน" },
-  { v: "spot", label: "Spot Bonus" },
-  { v: "project", label: "โบนัสโปรเจกต์" },
-  { v: "travel", label: "Travel Bonus" },
-  { v: "other", label: "อื่น ๆ" },
+// รูปแบบการทำงาน (3 แบบสำหรับองค์กรเล็ก) + ตัวช่วยแปลงเป็นชื่อไทย (รองรับค่าเก่า)
+export const WORK_MODES: { v: string; label: string }[] = [
+  { v: "office", label: "เข้าออฟฟิศ" },
+  { v: "remote", label: "รีโมท" },
+  { v: "project", label: "ตามโปรเจกต์" },
 ];
+const WORK_MODE_LABELS: Record<string, string> = {
+  office: "เข้าออฟฟิศ",
+  remote: "รีโมท",
+  project: "ตามโปรเจกต์",
+  hybrid: "ไฮบริด",
+  production: "ออกกอง",
+  no_fixed: "ไม่กำหนดเวลา",
+};
+export function workModeLabel(v?: string | null) {
+  return v ? WORK_MODE_LABELS[v] ?? v : null;
+}
 
 // แค็ตตาล็อกรางวัล/สวัสดิการที่เจ้าของให้พนักงานได้
 // unit: "baht" = เงินบาท · "salary" = ปรับเงินเดือน (เลือก % หรือ บาท) · "days" = จำนวนวัน

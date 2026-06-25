@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, PageHeader, Badge, statusBadge, EmptyState } from "@/components/ui";
 import { formatThaiDate } from "@/lib/utils";
+import { workModeLabel } from "@/lib/phase2-labels";
 import { Icon } from "@/components/Icon";
 import { SalaryReveal } from "@/components/profile/SalaryReveal";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
@@ -97,7 +98,7 @@ export default async function ProfilePage() {
               <Field label="อีเมล" value={emp.email} />
               <Field label="ทีม" value={(emp as any).teams?.name} />
               <Field label="หัวหน้างาน" value={mgr?.nickname || mgr?.first_name} />
-              <Field label="รูปแบบการทำงาน" value={emp.work_mode} />
+              <Field label="รูปแบบการทำงาน" value={workModeLabel(emp.work_mode)} />
               <Field label="วันเริ่มงาน" value={formatThaiDate(emp.start_date)} />
             </div>
           </Card>

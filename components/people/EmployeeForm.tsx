@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { formatTHB, formatThaiDate } from "@/lib/utils";
+import { WORK_MODES } from "@/lib/phase2-labels";
 
 type Opt = { id: string; name: string };
 type RoleOpt = { id: string; name: string; key: string };
@@ -14,11 +15,6 @@ const STATUS: { v: string; label: string }[] = [
   { v: "active", label: "ทำงานอยู่" },
   { v: "probation", label: "ทดลองงาน" },
   { v: "inactive", label: "ไม่ได้ทำงานแล้ว" },
-];
-const WORK_MODE: { v: string; label: string }[] = [
-  { v: "office", label: "เข้าออฟฟิศ" },
-  { v: "remote", label: "รีโมท" },
-  { v: "project", label: "ตามโปรเจกต์" },
 ];
 
 // 10 ธนาคารหลักของไทย (เก็บชื่อไทยลงคอลัมน์ bank_name)
@@ -272,7 +268,7 @@ export function EmployeeForm({
           <Select label="รูปแบบการจ้างงาน" value={f.employment_type_id} onChange={(v) => set("employment_type_id", v)} options={options.employmentTypes} placeholder="— เลือก —" />
           <Select label="สถานะ" value={f.status} onChange={(v) => set("status", v)} options={STATUS.map((s) => ({ id: s.v, name: s.label }))} />
           <Input label="ตำแหน่ง" value={f.position_title} onChange={(v) => set("position_title", v)} />
-          <Select label="รูปแบบการทำงาน" value={f.work_mode} onChange={(v) => set("work_mode", v)} options={WORK_MODE.map((s) => ({ id: s.v, name: s.label }))} placeholder="— เลือก —" />
+          <Select label="รูปแบบการทำงาน" value={f.work_mode} onChange={(v) => set("work_mode", v)} options={WORK_MODES.map((s) => ({ id: s.v, name: s.label }))} placeholder="— เลือก —" />
           <Select label="ทีม" value={f.team_id} onChange={(v) => set("team_id", v)} options={options.teams} placeholder="— เลือก —" />
           <Select label="หัวหน้างาน" value={f.manager_id} onChange={(v) => set("manager_id", v)} options={options.managers} placeholder="— ไม่มี —" />
           <Input label="วันเริ่มงาน" type="date" value={f.start_date} onChange={(v) => set("start_date", v)} />

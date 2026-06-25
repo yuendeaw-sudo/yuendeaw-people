@@ -16,7 +16,6 @@ export function QuestCard({ q }: { q: any }) {
 
   const t = questType(q.type);
   const st = QUEST_STATUS[q.status] ?? { th: q.status, tone: "sand" };
-  const rk = rewardKind((q.requested_reward ?? {}).kind ?? "cash");
   const reward = q.awarded_reward?.kind ? q.awarded_reward : q.requested_reward;
 
   async function setStatus(status: string, patch: any = {}) {

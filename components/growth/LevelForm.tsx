@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Icon } from "@/components/Icon";
 
 export function LevelForm({ trackId, nextOrder }: { trackId: string; nextOrder: number }) {
   const router = useRouter();
