@@ -119,7 +119,12 @@ export default async function ProfilePage() {
               <Icon name="Wallet" className="size-4 text-mint" /> ค่าตอบแทนของฉัน
             </h3>
             {comp ? (
-              <SalaryReveal amount={Number(comp.amount)} compType={comp.comp_type} />
+              <SalaryReveal
+                amount={Number(comp.amount)}
+                compType={comp.comp_type}
+                ssoEnrolled={(emp.social_security ?? "enrolled") !== "not_enrolled"}
+                withholdingTax={emp.withholding_tax != null ? Number(emp.withholding_tax) : null}
+              />
             ) : (
               <p className="text-sm text-muted">ยังไม่มีข้อมูลค่าตอบแทน</p>
             )}
