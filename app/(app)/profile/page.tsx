@@ -4,7 +4,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, PageHeader, Badge, statusBadge, EmptyState } from "@/components/ui";
 import { formatThaiDate } from "@/lib/utils";
 import { workModeLabel } from "@/lib/phase2-labels";
+import { paidDays, stipendAmount, DEFAULT_STIPEND } from "@/lib/intern";
 import { Icon } from "@/components/Icon";
+import { InternDailyLog } from "@/components/intern/InternDailyLog";
 import { SalaryReveal } from "@/components/profile/SalaryReveal";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
 import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
@@ -39,7 +41,7 @@ export default async function ProfilePage() {
   const { data: emp } = await supabase
     .from("employees")
     .select(
-      "*, employment_types(name, color), departments(name), teams(name), manager:manager_id(first_name, nickname)"
+      "*, employment_types(name, color, key), departments(name), teams(name), manager:manager_id(first_name, nickname)"
     )
     .eq("id", ctx.employeeId)
     .maybeSingle();
@@ -65,6 +67,38 @@ export default async function ProfilePage() {
   const mgr = (emp as any).manager;
   const ec = (emp.emergency_contact ?? {}) as any;
 
+  // ฝึกงาน: บันทึกประจำวัน + เบี้ยฝึก (เฉพาะน้องฝึก)
+  let internData: any = null;
+  if (et?.key === "intern") {
+    const admin = createAdminClient();
+    const today = new Date().toISOString().slice(0, 10);
+    const [{ data: logs }, { data: ev }] = await Promise.all([
+      admin.from("intern_logs").select("log_date, content").eq("intern_id", ctx.employeeId).order("log_date", { ascending: false }),
+      admin.from("intern_evaluations").select("status").eq("intern_id", ctx.employeeId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    ]);
+    const allLogs = logs ?? [];
+    const logDates = allLogs.map((l) => l.log_date);
+    const stipendStart = (emp as any).stipend_start_date ?? null;
+    const rate = Number((emp as any).stipend_daily_rate) || DEFAULT_STIPEND;
+    const monthStart = today.slice(0, 7) + "-01";
+    const totalDays = paidDays(logDates, stipendStart);
+    const monthDays = paidDays(logDates, stipendStart, monthStart);
+    internData = {
+      todayDate: today,
+      todayLog: allLogs.find((l) => l.log_date === today)?.content ?? "",
+      recentLogs: allLogs.slice(0, 10),
+      stipend: {
+        evalStatus: ev?.status ?? null,
+        stipendStart,
+        rate,
+        monthDays,
+        monthEarned: stipendAmount(monthDays, rate),
+        totalDays,
+        totalEarned: stipendAmount(totalDays, rate),
+      },
+    };
+  }
+
   return (
     <div>
       <PageHeader title="โปรไฟล์ของฉัน" icon="User" />
@@ -86,6 +120,15 @@ export default async function ProfilePage() {
           </div>
         </div>
       </Card>
+
+      {internData && (
+        <Card className="mb-5">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <Icon name="GraduationCap" className="size-4 text-grape" /> ฝึกงาน — บันทึกประจำวัน
+          </h3>
+          <InternDailyLog {...internData} />
+        </Card>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-5">
         <div className="space-y-5">

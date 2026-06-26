@@ -1,6 +1,7 @@
 import { getAccessContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatThaiDate } from "@/lib/utils";
+import { evalDueFromStart } from "@/lib/intern";
 
 export const runtime = "nodejs";
 
@@ -45,7 +46,7 @@ export async function GET(req: Request) {
   const today = new Date();
   const until = new Date(today.getTime() + DAYS_AHEAD * 86400000);
 
-  const [{ data: owners }, { data: probation }, { data: subs }] = await Promise.all([
+  const [{ data: owners }, { data: probation }, { data: subs }, { data: interns }] = await Promise.all([
     admin.from("app_users").select("id, email").eq("is_owner", true),
     admin
       .from("employees")
@@ -59,6 +60,13 @@ export async function GET(req: Request) {
       .gte("renewal_date", ymd(today))
       .lte("renewal_date", ymd(until))
       .neq("status", "cancelled"),
+    // น้องฝึกที่ยังไม่ผ่านประเมิน (stipend ยังไม่เริ่ม) — เตือนพี่เลี้ยง
+    admin
+      .from("employees")
+      .select("id, first_name, nickname, start_date, manager:manager_id(user_id), employment_types!inner(key)")
+      .eq("employment_types.key", "intern")
+      .is("stipend_start_date", null)
+      .in("status", ["active", "probation", "intern"]),
   ]);
 
   const ownerList = owners ?? [];
@@ -85,6 +93,22 @@ export async function GET(req: Request) {
         link: `/subscriptions`,
         kind: "subscription",
       });
+  }
+  // เตือนพี่เลี้ยง + เจ้าของ ให้ประเมินน้องฝึกที่ถึง/ใกล้กำหนด
+  for (const e of interns ?? []) {
+    const due = evalDueFromStart((e as any).start_date);
+    if (!due || due > ymd(until)) continue; // ยังไม่ถึงกำหนด/ใกล้กำหนด
+    const name = (e as any).nickname || (e as any).first_name;
+    const overdue = due < ymd(today);
+    const note: Omit<N, "user_id"> = {
+      title: `${overdue ? "เลยกำหนด" : "ใกล้กำหนด"}ประเมินน้องฝึก: ${name}`,
+      body: `กำหนดประเมิน ${formatThaiDate(due)} — กรุณาประเมินในระบบ`,
+      link: `/people/${(e as any).id}`,
+      kind: "intern_eval",
+    };
+    const mentorUid = (e as any).manager?.user_id;
+    if (mentorUid) candidates.push({ user_id: mentorUid, ...note });
+    for (const o of ownerList) candidates.push({ user_id: o.id, ...note });
   }
 
   if (!candidates.length) return Response.json({ created: 0 });

@@ -9,6 +9,7 @@ import { Icon } from "@/components/Icon";
 import { EmployeeTabs } from "@/components/people/EmployeeTabs";
 import { QuestEvidence } from "@/components/quests/QuestEvidence";
 import { InviteButton } from "@/components/people/InviteButton";
+import { paidDays, stipendAmount, evalDueFromStart, DEFAULT_STIPEND } from "@/lib/intern";
 
 function tenure(start?: string | null) {
   if (!start) return null;
@@ -33,7 +34,7 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
   const { data: emp } = await supabase
     .from("employees")
     .select(
-      "*, employment_types(name), departments(name), teams(name), manager:manager_id(first_name, nickname)"
+      "*, employment_types(name, key), departments(name), teams(name), manager:manager_id(first_name, nickname)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -81,6 +82,42 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
   const et = (emp as any).employment_types;
   const editHref = can(ctx, "people", "edit") ? `/people/${id}/edit` : null;
 
+  // ฝึกงาน: logs + ประเมิน + เบี้ยฝึก (เฉพาะน้องฝึก)
+  let intern: any = null;
+  if (et?.key === "intern") {
+    const admin = createAdminClient();
+    const today = new Date().toISOString().slice(0, 10);
+    const [{ data: logs }, { data: evals }] = await Promise.all([
+      admin.from("intern_logs").select("log_date, content").eq("intern_id", id).order("log_date", { ascending: false }),
+      admin.from("intern_evaluations").select("status, score, comment, evaluated_at").eq("intern_id", id).order("created_at", { ascending: false }),
+    ]);
+    const allLogs = logs ?? [];
+    const logDates = allLogs.map((l) => l.log_date);
+    const stipendStart = (emp as any).stipend_start_date ?? null;
+    const rate = Number((emp as any).stipend_daily_rate) || DEFAULT_STIPEND;
+    const monthStart = today.slice(0, 7) + "-01";
+    const totalDays = paidDays(logDates, stipendStart);
+    const monthDays = paidDays(logDates, stipendStart, monthStart);
+    const lastEval = (evals ?? [])[0] ?? null;
+    intern = {
+      employeeId: id,
+      logs: allLogs.slice(0, 30),
+      evals: evals ?? [],
+      evalStatus: lastEval?.status ?? null,
+      dueDate: evalDueFromStart((emp as any).start_date),
+      mentorName: (emp as any).manager?.nickname || (emp as any).manager?.first_name || null,
+      canEvaluate: ctx.isOwner || can(ctx, "people", "edit") || (emp as any).manager_id === ctx.employeeId,
+      stipend: {
+        stipendStart,
+        rate,
+        monthDays,
+        monthEarned: stipendAmount(monthDays, rate),
+        totalDays,
+        totalEarned: stipendAmount(totalDays, rate),
+      },
+    };
+  }
+
   return (
     <div>
       <Link href="/people" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink mb-4">
@@ -125,7 +162,7 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
 
       <QuestEvidence employeeId={id} />
 
-      <EmployeeTabs e={emp} comp={comp} documents={docs ?? []} canSensitive={canSensitive} editHref={editHref} auditLogs={auditLogs} />
+      <EmployeeTabs e={emp} comp={comp} documents={docs ?? []} canSensitive={canSensitive} editHref={editHref} auditLogs={auditLogs} intern={intern} />
     </div>
   );
 }

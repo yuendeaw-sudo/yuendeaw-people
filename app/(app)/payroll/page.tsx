@@ -49,6 +49,7 @@ export default async function PayrollPage() {
                   <th className="px-2 py-2 font-medium">พนักงาน</th>
                   <th className="px-2 py-2 font-medium">ประเภท</th>
                   <th className="px-2 py-2 font-medium text-right">เงินเดือน</th>
+                  <th className="px-2 py-2 font-medium text-right">เบี้ยฝึก</th>
                   <th className="px-2 py-2 font-medium text-right">โบนัส</th>
                   <th className="px-2 py-2 font-medium text-right">สวัสดิการ</th>
                   <th className="px-2 py-2 font-medium text-right">รวม</th>
@@ -68,6 +69,7 @@ export default async function PayrollPage() {
                       </td>
                       <td className="px-2 py-3 text-muted">{r.type ?? "—"}</td>
                       <td className="px-2 py-3 text-right">{r.salary ? formatTHB(r.salary) : "—"}</td>
+                      <td className="px-2 py-3 text-right">{r.stipend ? formatTHB(r.stipend) : "—"}</td>
                       <td className="px-2 py-3 text-right">{r.bonus ? formatTHB(r.bonus) : "—"}</td>
                       <td className="px-2 py-3 text-right">{r.welfare ? formatTHB(r.welfare) : "—"}</td>
                       <td className="px-2 py-3 text-right font-semibold">{formatTHB(r.net)}</td>
@@ -77,7 +79,7 @@ export default async function PayrollPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-sand">
-                  <td colSpan={5} className="px-2 py-3 font-semibold text-right">รวมทั้งหมด</td>
+                  <td colSpan={6} className="px-2 py-3 font-semibold text-right">รวมทั้งหมด</td>
                   <td className="px-2 py-3 text-right font-extrabold text-base">{formatTHB(total)}</td>
                 </tr>
               </tfoot>

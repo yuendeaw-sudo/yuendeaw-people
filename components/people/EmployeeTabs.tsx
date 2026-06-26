@@ -7,6 +7,7 @@ import { Badge, statusBadge } from "@/components/ui";
 import { formatThaiDate, formatTHB } from "@/lib/utils";
 import { workModeLabel } from "@/lib/phase2-labels";
 import { EmployeeDocuments } from "@/components/people/EmployeeDocuments";
+import { InternEvaluation } from "@/components/intern/InternEvaluation";
 
 type Tab = { key: string; label: string; icon: string };
 
@@ -75,6 +76,7 @@ export function EmployeeTabs({
   canSensitive,
   editHref,
   auditLogs = [],
+  intern = null,
 }: {
   e: any;
   comp: any[] | null;
@@ -82,6 +84,7 @@ export function EmployeeTabs({
   canSensitive: boolean;
   editHref: string | null;
   auditLogs?: any[];
+  intern?: any;
 }) {
   const [tab, setTab] = useState("personal");
   const [reveal, setReveal] = useState(false);
@@ -96,6 +99,7 @@ export function EmployeeTabs({
     { key: "employment", label: "การจ้างงาน", icon: "BriefcaseBusiness" },
     { key: "comp", label: "เงินเดือน/ค่าจ้าง", icon: "Wallet" },
     { key: "documents", label: "เอกสารสำคัญ", icon: "FileText" },
+    ...(intern ? [{ key: "intern", label: "ฝึกงาน", icon: "GraduationCap" }] : []),
     { key: "history", label: "ประวัติ", icon: "History" },
   ];
 
@@ -267,6 +271,59 @@ export function EmployeeTabs({
               canEdit={!!editHref}
               canView={canSensitive}
             />
+          </Block>
+        )}
+
+        {/* INTERN */}
+        {tab === "intern" && intern && (
+          <Block title="ฝึกงาน — ความคืบหน้า & เบี้ยฝึก" icon="GraduationCap">
+            <div className="rounded-xl2 bg-sand/40 p-4 mb-4 grid sm:grid-cols-2 gap-3 text-sm">
+              <div>
+                <div className="text-xs text-muted">สถานะประเมิน</div>
+                <div className="font-semibold">
+                  {intern.evalStatus === "passed" ? (
+                    <span className="text-mint">ผ่านแล้ว</span>
+                  ) : intern.evalStatus === "failed" ? (
+                    <span className="text-rose">ไม่ผ่าน</span>
+                  ) : (
+                    <span className="text-gold">รอประเมิน</span>
+                  )}
+                </div>
+                {intern.dueDate && !intern.stipend.stipendStart && (
+                  <div className="text-xs text-muted">กำหนดประเมิน {formatThaiDate(intern.dueDate)}</div>
+                )}
+                {intern.mentorName && <div className="text-xs text-muted">พี่เลี้ยง: {intern.mentorName}</div>}
+              </div>
+              <div>
+                <div className="text-xs text-muted">เบี้ยฝึก ({formatTHB(intern.stipend.rate)}/วัน)</div>
+                <div className="font-semibold">
+                  เดือนนี้ {intern.stipend.monthDays} วัน · {formatTHB(intern.stipend.monthEarned)}
+                </div>
+                <div className="text-xs text-muted">
+                  รวม {intern.stipend.totalDays} วัน · {formatTHB(intern.stipend.totalEarned)}
+                </div>
+              </div>
+            </div>
+
+            {intern.canEvaluate && (
+              <div className="mb-5">
+                <InternEvaluation employeeId={intern.employeeId} />
+              </div>
+            )}
+
+            <h4 className="text-sm font-semibold text-muted mb-2">บันทึกประจำวัน ({intern.logs.length})</h4>
+            {intern.logs.length ? (
+              <div className="space-y-2">
+                {intern.logs.map((l: any) => (
+                  <div key={l.log_date} className="rounded-xl bg-sand/40 px-3 py-2">
+                    <div className="text-xs font-medium text-gold">{formatThaiDate(l.log_date)}</div>
+                    <div className="text-sm whitespace-pre-wrap">{l.content}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted">ยังไม่มีบันทึกประจำวัน</p>
+            )}
           </Block>
         )}
 
