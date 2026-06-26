@@ -14,6 +14,20 @@ export function formatTHB(n: number | null | undefined) {
   }).format(n);
 }
 
+/**
+ * Normalize a date's year to ค.ศ. (Gregorian). If a user typed the year as
+ * พ.ศ. (Buddhist, ~543 ahead — e.g. 2569), convert it to ค.ศ. (2026).
+ * Leaves real Gregorian years (≤2200) untouched. Input/output: "YYYY-MM-DD".
+ */
+export function toCE(d: string | null | undefined): string {
+  if (!d) return "";
+  const m = /^(\d{3,4})-(\d{2})-(\d{2})$/.exec(d);
+  if (!m) return d;
+  let year = parseInt(m[1], 10);
+  if (year > 2200) year -= 543; // Buddhist era → Gregorian
+  return `${String(year).padStart(4, "0")}-${m[2]}-${m[3]}`;
+}
+
 /** Format a reward amount by its unit: บาท / percent / days. */
 export function formatReward(amount: number | null | undefined, unit?: string | null) {
   if (amount == null) return "—";

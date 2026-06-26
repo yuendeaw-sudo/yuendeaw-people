@@ -1,5 +1,7 @@
 "use client";
 
+import { toCE } from "@/lib/utils";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -121,11 +123,11 @@ export function SubscriptionForm({
               </div>
               <div>
                 <label className="label">วันที่เรียกเก็บ</label>
-                <input type="date" className="input" value={f.billing_date} onChange={(ev) => set("billing_date", ev.target.value)} />
+                <input type="date" className="input" value={f.billing_date} onChange={(ev) => set("billing_date", toCE(ev.target.value))} />
               </div>
               <div>
                 <label className="label">วันต่ออายุ</label>
-                <input type="date" className="input" value={f.renewal_date} onChange={(ev) => set("renewal_date", ev.target.value)} />
+                <input type="date" className="input" value={f.renewal_date} onChange={(ev) => set("renewal_date", toCE(ev.target.value))} />
               </div>
               <Sel label="ผู้ดูแล" v={f.owner_id} on={(v) => set("owner_id", v)} opts={employees} ph="— เลือก —" />
               <Sel label="ทีม/โปรเจกต์" v={f.team_id} on={(v) => set("team_id", v)} opts={teams} ph="— เลือก —" />

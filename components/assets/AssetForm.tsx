@@ -1,5 +1,7 @@
 "use client";
 
+import { toCE } from "@/lib/utils";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -115,11 +117,11 @@ export function AssetForm({ existing, employees }: { existing?: any; employees: 
               </div>
               <div>
                 <label className="label">วันที่มอบ</label>
-                <input type="date" className="input" value={f.assigned_date} onChange={(ev) => set("assigned_date", ev.target.value)} />
+                <input type="date" className="input" value={f.assigned_date} onChange={(ev) => set("assigned_date", toCE(ev.target.value))} />
               </div>
               <div>
                 <label className="label">วันที่คืน</label>
-                <input type="date" className="input" value={f.return_date} onChange={(ev) => set("return_date", ev.target.value)} />
+                <input type="date" className="input" value={f.return_date} onChange={(ev) => set("return_date", toCE(ev.target.value))} />
               </div>
               <div>
                 <label className="label">สภาพ</label>

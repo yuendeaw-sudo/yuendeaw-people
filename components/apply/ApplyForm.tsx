@@ -1,5 +1,7 @@
 "use client";
 
+import { toCE } from "@/lib/utils";
+
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/Icon";
@@ -141,7 +143,7 @@ export function ApplyForm({
             </div>
             <Field label="Link Portfolio" type="url" value={base.portfolio_url} onChange={(v) => setBase({ ...base, portfolio_url: v })} />
             <Field label="เงินเดือนที่คาดหวัง" value={base.expected_salary} onChange={(v) => setBase({ ...base, expected_salary: v })} />
-            <Field label="วันที่เริ่มงานได้" type="date" value={base.available_date} onChange={(v) => setBase({ ...base, available_date: v })} />
+            <Field label="วันที่เริ่มงานได้" type="date" value={base.available_date} onChange={(v) => setBase({ ...base, available_date: toCE(v) })} />
           </div>
         </SectionCard>
       )}

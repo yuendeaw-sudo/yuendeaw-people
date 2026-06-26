@@ -1,5 +1,7 @@
 "use client";
 
+import { toCE } from "@/lib/utils";
+
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -147,11 +149,11 @@ export function LeaveRequestForm({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">วันที่เริ่ม</label>
-              <input type="date" className="input" value={start} onChange={(e) => setStart(e.target.value)} required />
+              <input type="date" className="input" value={start} onChange={(e) => setStart(toCE(e.target.value))} required />
             </div>
             <div>
               <label className="label">ถึงวันที่</label>
-              <input type="date" className="input" value={end} onChange={(e) => setEnd(e.target.value)} disabled={halfDay} />
+              <input type="date" className="input" value={end} onChange={(e) => setEnd(toCE(e.target.value))} disabled={halfDay} />
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm">

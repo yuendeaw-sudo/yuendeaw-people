@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui";
 import { Icon } from "@/components/Icon";
-import { formatTHB, formatThaiDate } from "@/lib/utils";
+import { formatTHB, formatThaiDate, toCE } from "@/lib/utils";
 import { WORK_MODES } from "@/lib/phase2-labels";
 
 type Opt = { id: string; name: string };
@@ -152,8 +152,8 @@ export function EmployeeForm({
       position_title: f.position_title || null,
       work_mode: f.work_mode || null,
       stipend_daily_rate: f.stipend_daily_rate === "" ? 200 : Number(f.stipend_daily_rate),
-      start_date: f.start_date || null,
-      probation_end_date: f.probation_end_date || null,
+      start_date: toCE(f.start_date) || null,
+      probation_end_date: toCE(f.probation_end_date) || null,
       status: f.status,
       first_name_en: f.first_name_en || null,
       last_name_en: f.last_name_en || null,
@@ -165,7 +165,7 @@ export function EmployeeForm({
       ...(canSensitive
         ? {
             national_id: f.national_id || null,
-            birth_date: f.birth_date || null,
+            birth_date: toCE(f.birth_date) || null,
             bank_name: f.bank_name || null,
             bank_account: f.bank_account || null,
             bank_account_type: f.bank_account_type || null,
@@ -214,7 +214,7 @@ export function EmployeeForm({
         employee_id: empId,
         comp_type: comp.comp_type,
         amount: Number(comp.amount),
-        effective_date: comp.effective_date || new Date().toISOString().slice(0, 10),
+        effective_date: toCE(comp.effective_date) || new Date().toISOString().slice(0, 10),
       });
       if (error) return fail(error.message);
     }
@@ -262,7 +262,7 @@ export function EmployeeForm({
                 onChange={(v) => set("national_id", formatThaiID(v))}
                 placeholder="X-XXXX-XXXXX-XX-X"
               />
-              <Input label="วันเกิด" type="date" value={f.birth_date} onChange={(v) => set("birth_date", v)} />
+              <Input label="วันเกิด" type="date" value={f.birth_date} onChange={(v) => set("birth_date", toCE(v))} />
             </>
           )}
         </div>
@@ -285,8 +285,8 @@ export function EmployeeForm({
           <Select label="รูปแบบการทำงาน" value={f.work_mode} onChange={(v) => set("work_mode", v)} options={WORK_MODES.map((s) => ({ id: s.v, name: s.label }))} placeholder="— เลือก —" />
           <Select label="ทีม" value={f.team_id} onChange={(v) => set("team_id", v)} options={options.teams} placeholder="— เลือก —" />
           <Select label="หัวหน้างาน" value={f.manager_id} onChange={(v) => set("manager_id", v)} options={options.managers} placeholder="— ไม่มี —" />
-          <Input label="วันเริ่มงาน" type="date" value={f.start_date} onChange={(v) => set("start_date", v)} />
-          <Input label="สิ้นสุดทดลองงาน" type="date" value={f.probation_end_date} onChange={(v) => set("probation_end_date", v)} />
+          <Input label="วันเริ่มงาน" type="date" value={f.start_date} onChange={(v) => set("start_date", toCE(v))} />
+          <Input label="สิ้นสุดทดลองงาน" type="date" value={f.probation_end_date} onChange={(v) => set("probation_end_date", toCE(v))} />
         </div>
 
         {isIntern && (
@@ -363,7 +363,7 @@ export function EmployeeForm({
               ]}
             />
             <Input label="จำนวนเงิน (บาท)" type="number" value={comp.amount} onChange={(v) => setComp({ ...comp, amount: v })} />
-            <Input label="มีผลตั้งแต่" type="date" value={comp.effective_date} onChange={(v) => setComp({ ...comp, effective_date: v })} />
+            <Input label="มีผลตั้งแต่" type="date" value={comp.effective_date} onChange={(v) => setComp({ ...comp, effective_date: toCE(v) })} />
           </div>
           <div className="grid sm:grid-cols-2 gap-4 mt-4">
             <Select
