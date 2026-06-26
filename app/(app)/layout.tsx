@@ -15,6 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let roleLabel = ctx.isOwner ? "เจ้าของ / Founder" : "พนักงาน";
   let name = ctx.fullName || ctx.email;
   let isMentor = false;
+  let isIntern = false;
 
   if (ctx.employeeId) {
     const supabase = await createClient();
@@ -22,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     const [{ data: emp }, { data: myInterns }] = await Promise.all([
       supabase
         .from("employees")
-        .select("first_name, nickname, position_title, employment_types(name)")
+        .select("first_name, nickname, position_title, employment_types(name, key)")
         .eq("id", ctx.employeeId)
         .maybeSingle(),
       supabase
@@ -36,11 +37,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       name = emp.nickname || emp.first_name || name;
       const et = (emp as any).employment_types?.name;
       roleLabel = emp.position_title || et || roleLabel;
+      isIntern = (emp as any).employment_types?.key === "intern";
     }
     isMentor = (myInterns?.length ?? 0) > 0;
   }
 
-  const nav = visibleNav(ctx, { isMentor });
+  const nav = visibleNav(ctx, { isMentor, isIntern });
 
   return (
     <AppShell nav={nav} user={{ name, email: ctx.email, roleLabel }}>

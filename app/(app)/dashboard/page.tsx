@@ -7,6 +7,8 @@ import { Icon } from "@/components/Icon";
 import { formatThaiDate } from "@/lib/utils";
 import { LeaveBalances } from "@/components/leave/LeaveBalances";
 import { LeavePolicyGuide } from "@/components/leave/LeavePolicyGuide";
+import { InternDailyLog } from "@/components/intern/InternDailyLog";
+import { paidDays, stipendAmount, evalDueFromStart, DEFAULT_STIPEND } from "@/lib/intern";
 
 export default async function DashboardPage() {
   const ctx = (await getAccessContext())!;
@@ -94,6 +96,43 @@ export default async function DashboardPage() {
   const { myBalances, myRequests, empTypeKey, empStart } = personal;
   const { counts, newApps } = hr;
 
+  // เด็กฝึกงาน: หน้าหลัก = บันทึกเข้างาน + ความคืบหน้า (แทนการ์ดวันลา)
+  const isIntern = empTypeKey === "intern" && !!ctx.employeeId;
+  let internHome: any = null;
+  if (isIntern) {
+    const today = new Date().toISOString().slice(0, 10);
+    const monthStart = today.slice(0, 7) + "-01";
+    const [{ data: logs }, { data: ev }, { data: emp }] = await Promise.all([
+      supabase.from("intern_logs").select("log_date, content").eq("intern_id", ctx.employeeId).order("log_date", { ascending: false }),
+      supabase.from("intern_evaluations").select("status").eq("intern_id", ctx.employeeId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("employees").select("start_date, stipend_start_date, stipend_daily_rate").eq("id", ctx.employeeId).maybeSingle(),
+    ]);
+    const allLogs = logs ?? [];
+    const logDates = allLogs.map((l: any) => l.log_date);
+    const stipendStart = (emp as any)?.stipend_start_date ?? null;
+    const rate = Number((emp as any)?.stipend_daily_rate) || DEFAULT_STIPEND;
+    const start = (emp as any)?.start_date ?? empStart;
+    const totalDays = paidDays(logDates, stipendStart);
+    const monthDays = paidDays(logDates, stipendStart, monthStart);
+    const daysSinceStart = start ? Math.max(0, Math.floor((Date.parse(today) - Date.parse(start)) / 86400000)) : 0;
+    internHome = {
+      todayDate: today,
+      todayLog: allLogs.find((l: any) => l.log_date === today)?.content ?? "",
+      recentLogs: allLogs.slice(0, 10),
+      stipend: {
+        evalStatus: (ev as any)?.status ?? null,
+        stipendStart,
+        rate,
+        monthDays,
+        monthEarned: stipendAmount(monthDays, rate),
+        totalDays,
+        totalEarned: stipendAmount(totalDays, rate),
+        daysSinceStart,
+        evalDue: evalDueFromStart(start),
+      },
+    };
+  }
+
   return (
     <div className="space-y-7">
       <div>
@@ -148,6 +187,17 @@ export default async function DashboardPage() {
         </section>
       )}
 
+      {isIntern && internHome ? (
+        <section>
+          <Card>
+            <h2 className="font-semibold mb-4 flex items-center gap-2">
+              <Icon name="GraduationCap" className="size-5 text-grape" /> ฝึกงาน — บันทึกเข้างานประจำวัน
+            </h2>
+            <InternDailyLog {...internHome} />
+          </Card>
+        </section>
+      ) : (
+        <>
       {/* Personal */}
       <section className="grid lg:grid-cols-2 gap-5">
         <Card>
@@ -219,6 +269,8 @@ export default async function DashboardPage() {
           <LeaveBalances employeeId={ctx.employeeId} startDate={empStart} employmentTypeKey={empTypeKey} />
           <LeavePolicyGuide />
         </section>
+      )}
+        </>
       )}
 
       {ctx.isOwner && (

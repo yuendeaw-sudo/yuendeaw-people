@@ -14,6 +14,8 @@ type Stipend = {
   monthEarned: number;
   totalDays: number;
   totalEarned: number;
+  daysSinceStart?: number; // ฝึกงานมาแล้วกี่วัน (นับจากวันเริ่ม)
+  evalDue?: string | null; // กำหนดประเมิน
 };
 
 export function InternDailyLog({
@@ -57,12 +59,22 @@ export function InternDailyLog({
 
   return (
     <div className="space-y-4">
-      {/* สถานะเบี้ยฝึก */}
+      {/* ความคืบหน้า + สถานะเบี้ยฝึก */}
       <div className={`rounded-xl2 p-4 ${passed ? "bg-mint-soft" : "bg-sand/50"}`}>
+        {stipend.daysSinceStart != null && (
+          <div className="text-sm mb-2 flex items-center gap-1.5">
+            <Icon name="CalendarDays" className="size-4 text-gold" />
+            ฝึกงานมาแล้ว <b>{stipend.daysSinceStart} วัน</b>
+          </div>
+        )}
         {passed ? (
           <>
-            <div className="text-sm font-semibold text-mint flex items-center gap-1.5">
-              <Icon name="CircleCheck" className="size-4" /> ผ่านประเมินแล้ว — รับเบี้ยฝึก {formatTHB(stipend.rate)}/วัน
+            <div className="text-sm font-semibold text-mint flex items-center gap-1.5 flex-wrap">
+              <Icon name="CircleCheck" className="size-4" /> ผ่านประเมินแล้ว
+              {stipend.stipendStart && (
+                <span className="font-normal text-muted">· ตั้งแต่ {formatThaiDate(stipend.stipendStart)}</span>
+              )}
+              <span className="font-normal">— รับเบี้ยฝึก {formatTHB(stipend.rate)}/วัน</span>
             </div>
             <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm">
               <span>เดือนนี้: <b>{stipend.monthDays} วัน</b> · {formatTHB(stipend.monthEarned)}</span>
@@ -71,11 +83,14 @@ export function InternDailyLog({
           </>
         ) : (
           <div className="text-sm">
-            <span className="font-semibold flex items-center gap-1.5">
-              <Icon name="Hourglass" className="size-4 text-gold" /> ช่วงทดลองฝึกงาน (เดือนแรก)
+            <span className="font-semibold flex items-center gap-1.5 flex-wrap">
+              <Icon name="Hourglass" className="size-4 text-gold" /> รอประเมิน (ช่วงทดลองฝึกงาน)
+              {stipend.evalDue && (
+                <span className="font-normal text-muted">· กำหนดประเมิน {formatThaiDate(stipend.evalDue)}</span>
+              )}
             </span>
             <p className="text-muted mt-1">
-              เดือนแรกยังไม่มีเบี้ยฝึก — ขยันเขียนบันทึกทุกวัน รอพี่เลี้ยงประเมิน ผ่านแล้วเริ่มได้เบี้ย ฿200/วัน 💪
+              เดือนแรกยังไม่มีเบี้ยฝึก — ขยันเขียนบันทึกทุกวัน รอพี่เลี้ยงประเมิน ผ่านแล้วเริ่มได้เบี้ย {formatTHB(stipend.rate)}/วัน 💪
             </p>
           </div>
         )}

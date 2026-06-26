@@ -33,6 +33,8 @@ export type NavItem = {
   ownerOnly?: boolean;
   /** shown only to interns' mentors (or the owner) */
   mentorOnly?: boolean;
+  /** hidden for interns (e.g. leave — they have no leave entitlement) */
+  hideForIntern?: boolean;
 };
 
 export const NAV: { section: string; items: NavItem[] }[] = [
@@ -42,7 +44,7 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { key: "dashboard", label: "หน้าหลัก", href: "/dashboard", icon: "LayoutDashboard" },
       { key: "profile", label: "โปรไฟล์ของฉัน", href: "/profile", icon: "User" },
       { key: "quests", label: "Growth Quest", href: "/quests", icon: "Target" },
-      { key: "leave", label: "เวลา & การลา", href: "/time-leave", icon: "CalendarClock" },
+      { key: "leave", label: "เวลา & การลา", href: "/time-leave", icon: "CalendarClock", hideForIntern: true },
       { key: "my-interns", label: "น้องฝึกในความดูแล", href: "/my-interns", icon: "GraduationCap", mentorOnly: true },
       { key: "handbook", label: "คู่มือพนักงาน", href: "/handbook", icon: "BookOpen" },
     ],
@@ -76,11 +78,13 @@ export const NAV: { section: string; items: NavItem[] }[] = [
   },
 ];
 
-export function visibleNav(ctx: AccessContext, opts?: { isMentor?: boolean }) {
+export function visibleNav(ctx: AccessContext, opts?: { isMentor?: boolean; isIntern?: boolean }) {
   const isMentor = opts?.isMentor ?? false;
+  const isIntern = opts?.isIntern ?? false;
   return NAV.map((group) => ({
     section: group.section,
     items: group.items.filter((item) => {
+      if (item.hideForIntern && isIntern) return false;
       if (item.ownerOnly) return ctx.isOwner;
       if (item.mentorOnly) return ctx.isOwner || isMentor;
       if (!item.module) return true; // personal items — everyone
