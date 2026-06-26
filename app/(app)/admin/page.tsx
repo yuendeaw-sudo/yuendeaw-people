@@ -5,21 +5,21 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader, Card, Badge } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { OrgManager } from "@/components/admin/OrgManager";
-import { getEmploymentTypes, getLeaveTypes, getRoles } from "@/lib/reference";
 
 export default async function AdminPage() {
   const ctx = (await getAccessContext())!;
   if (!can(ctx, "admin_settings", "view")) redirect("/dashboard");
   const supabase = await createClient();
 
-  const [empTypes, leaveTypes, roles, { data: perms }, { data: departments }, { data: teams }] = await Promise.all([
-    getEmploymentTypes(), // cached
-    getLeaveTypes(), // cached
-    getRoles(), // cached
-    supabase.from("role_permissions").select("role_id"),
-    supabase.from("departments").select("id, name").order("name"),
-    supabase.from("teams").select("id, name, department_id").order("name"),
-  ]);
+  const [{ data: empTypes }, { data: leaveTypes }, { data: roles }, { data: perms }, { data: departments }, { data: teams }] =
+    await Promise.all([
+      supabase.from("employment_types").select("id, name, key, color, is_active").order("sort_order"),
+      supabase.from("leave_types").select("id, name, is_paid, color").order("sort_order"),
+      supabase.from("roles").select("id, key, name, description"),
+      supabase.from("role_permissions").select("role_id"),
+      supabase.from("departments").select("id, name").order("name"),
+      supabase.from("teams").select("id, name, department_id").order("name"),
+    ]);
 
   const permCount = (roleId: string) => (perms ?? []).filter((p) => p.role_id === roleId).length;
 
