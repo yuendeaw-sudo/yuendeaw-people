@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -12,6 +11,9 @@ const ACTIVE_STATUSES = ["active", "probation", "intern", "freelance"];
 //   GET /api/directory/is-employee?email=foo@gmail.com
 //   Authorization: Bearer <DIRECTORY_API_TOKEN>
 // → { employee: boolean, status: string | null }
+//
+// Uses a raw PostgREST fetch (not supabase-js) to stay independent of the
+// realtime client's Node-version requirements.
 export async function GET(req: Request) {
   const token = process.env.DIRECTORY_API_TOKEN;
   if (!token) {
@@ -27,20 +29,30 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "email required" }, { status: 400 });
   }
 
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("employees")
-    .select("status")
-    .ilike("email", email)
-    .maybeSingle();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    return NextResponse.json({ error: "directory not configured" }, { status: 503 });
+  }
 
-  if (error) {
+  let row: { status?: string } | null = null;
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/employees?select=status&limit=1&email=ilike.${encodeURIComponent(email)}`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` }, cache: "no-store" }
+    );
+    if (!res.ok) {
+      return NextResponse.json({ error: "lookup failed" }, { status: 500 });
+    }
+    const rows = (await res.json()) as { status?: string }[];
+    row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+  } catch {
     return NextResponse.json({ error: "lookup failed" }, { status: 500 });
   }
 
-  const employee = !!data && ACTIVE_STATUSES.includes(data.status);
+  const employee = !!row && ACTIVE_STATUSES.includes(row.status ?? "");
   return NextResponse.json(
-    { employee, status: data?.status ?? null },
+    { employee, status: row?.status ?? null },
     { headers: { "Cache-Control": "no-store" } }
   );
 }
