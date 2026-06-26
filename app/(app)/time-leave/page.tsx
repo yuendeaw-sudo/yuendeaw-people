@@ -21,38 +21,44 @@ export default async function TimeLeavePage() {
   const ctx = (await getAccessContext())!;
   const supabase = await createClient();
   const canApprove = can(ctx, "time_leave", "approve") || can(ctx, "time_leave", "view");
+  const canKeySpecial = ctx.isOwner || can(ctx, "time_leave", "create");
 
-  const { data: leaveTypes } = await supabase
-    .from("leave_types")
-    .select("id, key, name, requires_evidence")
-    .eq("is_active", true)
-    .in("key", LEAVE_KEYS)
-    .order("sort_order");
+  // The four blocks are independent → fetch them concurrently instead of in series.
+  async function loadLeaveTypes() {
+    const { data } = await supabase
+      .from("leave_types")
+      .select("id, key, name, requires_evidence")
+      .eq("is_active", true)
+      .in("key", LEAVE_KEYS)
+      .order("sort_order");
+    return data ?? [];
+  }
 
-  let myRequests: any[] = [];
-  let empInfo: any = null;
-  let limits: LeaveLimits | null = null;
-  if (ctx.employeeId) {
+  async function loadPersonal() {
+    if (!ctx.employeeId) return { myRequests: [] as any[], empInfo: null as any, limits: null as LeaveLimits | null };
     const [{ data: reqs }, { data: emp }] = await Promise.all([
       supabase
         .from("leave_requests")
         .select("id, start_date, end_date, total_days, status, reason, hr_comment, evidence_path, leave_types(name, key)")
         .eq("employee_id", ctx.employeeId)
         .order("created_at", { ascending: false }),
-      supabase
-        .from("employees")
-        .select("start_date, employment_types(key)")
-        .eq("id", ctx.employeeId)
-        .maybeSingle(),
+      supabase.from("employees").select("start_date, employment_types(key)").eq("id", ctx.employeeId).maybeSingle(),
     ]);
-    // history = real leaves only (exclude WFH / on-site logs)
-    myRequests = (reqs ?? []).filter((r: any) => !["wfh", "onsite", "event"].includes(r.leave_types?.key));
-    empInfo = emp;
-    limits = await computeLeaveLimits(supabase, ctx.employeeId, emp?.start_date, (emp as any)?.employment_types?.key ?? "full_time");
+    const limits = await computeLeaveLimits(
+      supabase,
+      ctx.employeeId,
+      (emp as any)?.start_date,
+      (emp as any)?.employment_types?.key ?? "full_time"
+    );
+    return {
+      myRequests: (reqs ?? []).filter((r: any) => !["wfh", "onsite", "event"].includes(r.leave_types?.key)),
+      empInfo: emp,
+      limits,
+    };
   }
 
-  let pending: any[] = [];
-  if (canApprove) {
+  async function loadPending() {
+    if (!canApprove) return [] as any[];
     const { data } = await supabase
       .from("leave_requests")
       .select(
@@ -60,21 +66,29 @@ export default async function TimeLeavePage() {
       )
       .eq("status", "pending")
       .order("created_at", { ascending: true });
-    pending = (data ?? []).filter((r: any) => r.employees);
+    return (data ?? []).filter((r: any) => r.employees);
   }
 
-  // data for the HR/manager special-case form
-  let spEmployees: { id: string; name: string }[] = [];
-  let spLeaveTypes: any[] = [];
-  const canKeySpecial = ctx.isOwner || can(ctx, "time_leave", "create");
-  if (canKeySpecial) {
+  async function loadSpecial() {
+    if (!canKeySpecial) return { spEmployees: [] as { id: string; name: string }[], spLeaveTypes: [] as any[] };
     const [{ data: emps }, { data: allTypes }] = await Promise.all([
       supabase.from("employees").select("id, first_name, nickname").order("first_name"),
       supabase.from("leave_types").select("id, name, key").eq("is_active", true).order("sort_order"),
     ]);
-    spEmployees = (emps ?? []).map((e) => ({ id: e.id, name: e.nickname || e.first_name }));
-    spLeaveTypes = allTypes ?? [];
+    return {
+      spEmployees: (emps ?? []).map((e: any) => ({ id: e.id, name: e.nickname || e.first_name })),
+      spLeaveTypes: allTypes ?? [],
+    };
   }
+
+  const [leaveTypes, personal, pending, special] = await Promise.all([
+    loadLeaveTypes(),
+    loadPersonal(),
+    loadPending(),
+    loadSpecial(),
+  ]);
+  const { myRequests, empInfo, limits } = personal;
+  const { spEmployees, spLeaveTypes } = special;
 
   const myConfirm = myRequests.filter((r: any) => r.status === "awaiting_confirm");
   const history = myRequests.filter((r: any) => r.status !== "awaiting_confirm");
