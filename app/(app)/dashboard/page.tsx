@@ -17,20 +17,17 @@ export default async function DashboardPage() {
   const hour = new Date().getHours();
   const greet = hour < 12 ? "สวัสดีตอนเช้า" : hour < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น";
 
-  // ---- personal data ----
-  let myBalances: any[] = [];
-  let myRequests: any[] = [];
-  let empTypeKey = "full_time";
-  let empStart: string | null = null;
-  if (ctx.employeeId) {
-    const year = new Date().getFullYear();
+  // The personal / HR / leave blocks are independent → run them concurrently.
+  const year = new Date().getFullYear();
+
+  async function loadPersonal() {
+    if (!ctx.employeeId)
+      return { myBalances: [] as any[], myRequests: [] as any[], empTypeKey: "full_time", empStart: null as string | null };
     const { data: emp } = await supabase
       .from("employees")
       .select("start_date, employment_types(key)")
       .eq("id", ctx.employeeId)
       .maybeSingle();
-    empTypeKey = (emp as any)?.employment_types?.key ?? "full_time";
-    empStart = (emp as any)?.start_date ?? null;
     const [{ data: bal }, { data: req }] = await Promise.all([
       supabase
         .from("leave_balances")
@@ -44,15 +41,17 @@ export default async function DashboardPage() {
         .order("created_at", { ascending: false })
         .limit(5),
     ]);
-    myBalances = bal ?? [];
-    myRequests = req ?? [];
+    return {
+      myBalances: bal ?? [],
+      myRequests: req ?? [],
+      empTypeKey: (emp as any)?.employment_types?.key ?? "full_time",
+      empStart: (emp as any)?.start_date ?? null,
+    };
   }
 
-  // ---- HR / owner aggregates ----
-  const counts = { active: 0, intern: 0, probation: 0, freelance: 0 };
-  let pendingLeave = 0;
-  let newApps = 0;
-  if (isHR) {
+  async function loadHR() {
+    const counts = { active: 0, intern: 0, probation: 0, freelance: 0 };
+    if (!isHR) return { counts, newApps: 0 };
     // employment-type cards count by type; ทดลองงาน counts by status
     const { data: ets } = await supabase
       .from("employment_types")
@@ -60,7 +59,6 @@ export default async function DashboardPage() {
       .in("key", ["full_time", "intern", "freelance"]);
     const idByKey: Record<string, string> = {};
     for (const t of ets ?? []) idByKey[t.key] = t.id;
-
     const countByType = async (key: string) => {
       if (!idByKey[key]) return 0;
       const { count } = await supabase
@@ -69,7 +67,6 @@ export default async function DashboardPage() {
         .eq("employment_type_id", idByKey[key]);
       return count ?? 0;
     };
-
     const [ft, it, fl, pb, na] = await Promise.all([
       countByType("full_time"),
       countByType("intern"),
@@ -81,15 +78,21 @@ export default async function DashboardPage() {
     counts.intern = it;
     counts.freelance = fl;
     counts.probation = pb.count ?? 0;
-    newApps = na.count ?? 0;
+    return { counts, newApps: na.count ?? 0 };
   }
-  if (isLeaveMgr) {
+
+  async function loadLeave() {
+    if (!isLeaveMgr) return 0;
     const { count } = await supabase
       .from("leave_requests")
       .select("*", { count: "exact", head: true })
       .eq("status", "pending");
-    pendingLeave = count ?? 0;
+    return count ?? 0;
   }
+
+  const [personal, hr, pendingLeave] = await Promise.all([loadPersonal(), loadHR(), loadLeave()]);
+  const { myBalances, myRequests, empTypeKey, empStart } = personal;
+  const { counts, newApps } = hr;
 
   return (
     <div className="space-y-7">

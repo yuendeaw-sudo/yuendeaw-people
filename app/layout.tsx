@@ -4,7 +4,7 @@ import "./globals.css";
 
 const notoSansThai = Noto_Sans_Thai({
   subsets: ["thai", "latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"], // 300 (font-light) is unused — dropped to trim font payload
   variable: "--font-noto-sans-thai",
   display: "swap",
 });

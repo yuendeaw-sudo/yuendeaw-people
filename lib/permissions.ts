@@ -9,6 +9,7 @@ export type PermAction =
 export type AccessContext = {
   userId: string;
   email: string;
+  fullName: string | null;
   isOwner: boolean;
   employeeId: string | null;
   /** flat set of `${module}:${action}` granted to this user */
