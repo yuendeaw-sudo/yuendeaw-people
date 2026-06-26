@@ -235,7 +235,16 @@ export function EmployeeForm({
           <Input label="ชื่อ *" value={f.first_name} onChange={(v) => set("first_name", v)} required />
           <Input label="นามสกุล" value={f.last_name} onChange={(v) => set("last_name", v)} />
           <Input label="ชื่อเล่น" value={f.nickname} onChange={(v) => set("nickname", v)} />
-          <Input label="รหัสพนักงาน" value={f.employee_code} onChange={(v) => set("employee_code", v)} />
+          <div>
+            <label className="label">รหัสพนักงาน</label>
+            {mode === "edit" ? (
+              <input className="input bg-sand/40 text-muted" value={f.employee_code} disabled />
+            ) : (
+              <div className="input bg-sand/40 text-muted flex items-center text-sm">
+                ระบบออกให้อัตโนมัติ — พนักงาน = YD, เด็กฝึกงาน = TR
+              </div>
+            )}
+          </div>
           <Input label="ชื่อ (EN)" value={f.first_name_en} onChange={(v) => set("first_name_en", v)} />
           <Input label="นามสกุล (EN)" value={f.last_name_en} onChange={(v) => set("last_name_en", v)} />
           <Input label="ชื่อเล่น (EN)" value={f.nickname_en} onChange={(v) => set("nickname_en", v)} />
