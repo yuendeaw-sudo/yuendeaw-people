@@ -42,12 +42,19 @@ export async function GET(req: Request) {
       { headers: { apikey: key, Authorization: `Bearer ${key}` }, cache: "no-store" }
     );
     if (!res.ok) {
-      return NextResponse.json({ error: "lookup failed" }, { status: 500 });
+      const body = await res.text();
+      return NextResponse.json(
+        { error: "lookup failed", upstream_status: res.status, upstream: body.slice(0, 200) },
+        { status: 500 }
+      );
     }
     const rows = (await res.json()) as { status?: string }[];
     row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
-  } catch {
-    return NextResponse.json({ error: "lookup failed" }, { status: 500 });
+  } catch (e) {
+    return NextResponse.json(
+      { error: "lookup failed", detail: e instanceof Error ? e.message : "unknown" },
+      { status: 500 }
+    );
   }
 
   const employee = !!row && ACTIVE_STATUSES.includes(row.status ?? "");

@@ -7,6 +7,7 @@ import { Icon } from "@/components/Icon";
 import { formatThaiDate } from "@/lib/utils";
 import { LeaveBalances } from "@/components/leave/LeaveBalances";
 import { LeavePolicyGuide } from "@/components/leave/LeavePolicyGuide";
+import { getEmploymentTypes } from "@/lib/reference";
 
 export default async function DashboardPage() {
   const ctx = (await getAccessContext())!;
@@ -53,12 +54,9 @@ export default async function DashboardPage() {
     const counts = { active: 0, intern: 0, probation: 0, freelance: 0 };
     if (!isHR) return { counts, newApps: 0 };
     // employment-type cards count by type; ทดลองงาน counts by status
-    const { data: ets } = await supabase
-      .from("employment_types")
-      .select("id, key")
-      .in("key", ["full_time", "intern", "freelance"]);
+    const ets = await getEmploymentTypes(); // cached reference data
     const idByKey: Record<string, string> = {};
-    for (const t of ets ?? []) idByKey[t.key] = t.id;
+    for (const t of ets) idByKey[t.key] = t.id;
     const countByType = async (key: string) => {
       if (!idByKey[key]) return 0;
       const { count } = await supabase

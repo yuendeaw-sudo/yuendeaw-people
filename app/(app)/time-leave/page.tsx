@@ -12,6 +12,7 @@ import { LeaveBalances } from "@/components/leave/LeaveBalances";
 import { WorkArrangement } from "@/components/leave/WorkArrangement";
 import { LeavePolicyGuide } from "@/components/leave/LeavePolicyGuide";
 import { computeLeaveLimits, type LeaveLimits } from "@/lib/leave";
+import { getLeaveTypes } from "@/lib/reference";
 
 // leave types shown in the "ขอลา" form.
 // (WFH/on-site/event are NOT leave; "unpaid"/LWOP is a special case handled via HR, not self-service)
@@ -25,13 +26,10 @@ export default async function TimeLeavePage() {
 
   // The four blocks are independent → fetch them concurrently instead of in series.
   async function loadLeaveTypes() {
-    const { data } = await supabase
-      .from("leave_types")
-      .select("id, key, name, requires_evidence")
-      .eq("is_active", true)
-      .in("key", LEAVE_KEYS)
-      .order("sort_order");
-    return data ?? [];
+    const all = await getLeaveTypes(); // cached reference data
+    return all
+      .filter((t) => t.is_active && LEAVE_KEYS.includes(t.key as any))
+      .map((t) => ({ id: t.id, key: t.key, name: t.name, requires_evidence: t.requires_evidence }));
   }
 
   async function loadPersonal() {
@@ -71,13 +69,13 @@ export default async function TimeLeavePage() {
 
   async function loadSpecial() {
     if (!canKeySpecial) return { spEmployees: [] as { id: string; name: string }[], spLeaveTypes: [] as any[] };
-    const [{ data: emps }, { data: allTypes }] = await Promise.all([
+    const [{ data: emps }, allTypes] = await Promise.all([
       supabase.from("employees").select("id, first_name, nickname").order("first_name"),
-      supabase.from("leave_types").select("id, name, key").eq("is_active", true).order("sort_order"),
+      getLeaveTypes(), // cached
     ]);
     return {
       spEmployees: (emps ?? []).map((e: any) => ({ id: e.id, name: e.nickname || e.first_name })),
-      spLeaveTypes: allTypes ?? [],
+      spLeaveTypes: allTypes.filter((t) => t.is_active).map((t) => ({ id: t.id, name: t.name, key: t.key })),
     };
   }
 
