@@ -14,7 +14,7 @@ export async function loadEmployeeFormOptions(excludeEmployeeId?: string) {
   ]);
 
   return {
-    employmentTypes: empTypesAll.filter((t) => t.is_active).map((t) => ({ id: t.id, name: t.name })),
+    employmentTypes: empTypesAll.filter((t) => t.is_active).map((t) => ({ id: t.id, name: t.name, key: t.key })),
     departments: departments ?? [],
     teams: teams ?? [],
     // Small-company set for now: owner / employee / intern only.

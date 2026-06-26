@@ -67,7 +67,7 @@ export function EmployeeForm({
 }: {
   mode: "create" | "edit";
   employee?: any;
-  options: { employmentTypes: Opt[]; departments: Opt[]; teams: Opt[]; managers: Opt[]; roles: RoleOpt[] };
+  options: { employmentTypes: (Opt & { key?: string })[]; departments: Opt[]; teams: Opt[]; managers: Opt[]; roles: RoleOpt[] };
   currentRoleIds?: string[];
   compHistory?: any[];
   canSensitive: boolean;
@@ -107,6 +107,7 @@ export function EmployeeForm({
     bank_branch: e.bank_branch ?? "",
     social_security: e.social_security ?? "enrolled",
     withholding_tax: e.withholding_tax ? "yes" : "no", // flag: หัก / ไม่หัก
+    stipend_daily_rate: String(e.stipend_daily_rate ?? 200), // เบี้ยฝึกงาน/วัน (เฉพาะเด็กฝึกงาน)
     emergency_name: ec.name ?? "",
     emergency_phone: ec.phone ?? "",
     emergency_relation: ec.relation ?? "",
@@ -116,6 +117,9 @@ export function EmployeeForm({
   const [comp, setComp] = useState({ comp_type: "monthly_salary", amount: "", effective_date: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // is the currently-selected employment type an intern? → show stipend field
+  const isIntern = (options.employmentTypes.find((t) => t.id === f.employment_type_id) as any)?.key === "intern";
 
   function set<K extends keyof typeof f>(k: K, v: string) {
     setF({ ...f, [k]: v });
@@ -147,6 +151,7 @@ export function EmployeeForm({
       manager_id: f.manager_id || null,
       position_title: f.position_title || null,
       work_mode: f.work_mode || null,
+      stipend_daily_rate: f.stipend_daily_rate === "" ? 200 : Number(f.stipend_daily_rate),
       start_date: f.start_date || null,
       probation_end_date: f.probation_end_date || null,
       status: f.status,
@@ -274,6 +279,27 @@ export function EmployeeForm({
           <Input label="วันเริ่มงาน" type="date" value={f.start_date} onChange={(v) => set("start_date", v)} />
           <Input label="สิ้นสุดทดลองงาน" type="date" value={f.probation_end_date} onChange={(v) => set("probation_end_date", v)} />
         </div>
+
+        {isIntern && (
+          <div className="mt-4 rounded-xl2 bg-brand-soft/50 border border-brand/30 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Icon name="GraduationCap" className="size-4 text-gold" />
+              <span className="font-semibold text-sm">เด็กฝึกงาน — เบี้ยฝึก</span>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Input
+                label="เบี้ยฝึกงาน / วัน (บาท)"
+                type="number"
+                value={String(f.stipend_daily_rate)}
+                onChange={(v) => set("stipend_daily_rate", v)}
+              />
+            </div>
+            <p className="text-xs text-muted mt-2 leading-relaxed">
+              ระบบจะ<b>เริ่มจ่ายเบี้ยนี้หลังพี่เลี้ยงประเมิน “ผ่าน”</b> โดยนับเฉพาะวันที่น้องเขียนบันทึกประจำวัน
+              (เดือนแรกยังไม่ได้เบี้ย) — สำหรับเด็กฝึกงาน <b>ไม่ต้องกรอกช่อง “ค่าตอบแทน” ด้านล่าง</b>
+            </p>
+          </div>
+        )}
       </Section>
 
       {canAssignRoles && (
@@ -297,6 +323,12 @@ export function EmployeeForm({
 
       {canSensitive && (
         <Section title="ค่าตอบแทน (sensitive)" icon="Wallet">
+          {isIntern && (
+            <p className="text-xs text-gold bg-brand-soft/60 rounded-lg px-3 py-2 mb-3">
+              💡 สำหรับเด็กฝึกงาน ใช้ช่อง “เบี้ยฝึกงาน/วัน” ด้านบนแทน — ไม่ต้องกรอกค่าตอบแทนตรงนี้
+              (ถ้ากรอก ยอดจะซ้ำกับเบี้ยฝึกใน Payroll)
+            </p>
+          )}
           {compHistory.length > 0 && (
             <div className="space-y-2 mb-4">
               {compHistory.map((c, i) => (
