@@ -28,6 +28,20 @@ export function toCE(d: string | null | undefined): string {
   return `${String(year).padStart(4, "0")}-${m[2]}-${m[3]}`;
 }
 
+/** อายุงานนับจากวันเริ่มงาน → "2 ปี 3 เดือน" (หรือ null ถ้าไม่มีวันเริ่ม). */
+export function tenureLabel(start?: string | null): string | null {
+  if (!start) return null;
+  const s = new Date(start);
+  if (isNaN(s.getTime())) return null;
+  const now = new Date();
+  let months = (now.getFullYear() - s.getFullYear()) * 12 + (now.getMonth() - s.getMonth());
+  if (now.getDate() < s.getDate()) months -= 1;
+  if (months < 0) months = 0;
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  return `${y > 0 ? `${y} ปี ` : ""}${m} เดือน`.trim();
+}
+
 /** Format a reward amount by its unit: บาท / percent / days. */
 export function formatReward(amount: number | null | undefined, unit?: string | null) {
   if (amount == null) return "—";
