@@ -28,6 +28,7 @@ export type PayrollRow = {
   net: number; // ยอดสุทธิ (หลังหัก)
   bankName: string | null; // สำหรับโอนเงิน
   bankAccount: string | null;
+  startDate: string | null; // ใช้เรียงตามอายุงาน
 };
 
 export async function computePayroll(supabase: any, year: number, month: number) {
@@ -41,7 +42,7 @@ export async function computePayroll(supabase: any, year: number, month: number)
     supabase
       .from("employees")
       .select(
-        "id, employee_code, first_name, last_name, nickname, status, social_security, bank_name, bank_account, stipend_start_date, stipend_daily_rate, employment_types(name, key)"
+        "id, employee_code, first_name, last_name, nickname, status, start_date, social_security, bank_name, bank_account, stipend_start_date, stipend_daily_rate, employment_types(name, key)"
       )
       .in("status", ["active", "probation", "intern", "freelance"])
       .order("employee_code"),
@@ -95,7 +96,16 @@ export async function computePayroll(supabase: any, year: number, month: number)
       net: pay + bonusV + welfareV - sso - wht,
       bankName: e.bank_name ?? null,
       bankAccount: e.bank_account ?? null,
+      startDate: e.start_date ?? null,
     };
+  });
+
+  // เรียงตามอายุงาน: อยู่นานสุด (วันเริ่มงานเก่าสุด) อยู่บนสุด, คนไม่มีวันเริ่มไว้ท้าย
+  rows.sort((a, b) => {
+    if (!a.startDate && !b.startDate) return 0;
+    if (!a.startDate) return 1;
+    if (!b.startDate) return -1;
+    return a.startDate < b.startDate ? -1 : a.startDate > b.startDate ? 1 : 0;
   });
 
   const total = rows.reduce((s, r) => s + r.net, 0);
