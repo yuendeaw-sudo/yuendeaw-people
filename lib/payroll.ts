@@ -26,6 +26,8 @@ export type PayrollRow = {
   sso: number; // หักประกันสังคม
   wht: number; // หัก ณ ที่จ่าย
   net: number; // ยอดสุทธิ (หลังหัก)
+  bankName: string | null; // สำหรับโอนเงิน
+  bankAccount: string | null;
 };
 
 export async function computePayroll(supabase: any, year: number, month: number) {
@@ -39,7 +41,7 @@ export async function computePayroll(supabase: any, year: number, month: number)
     supabase
       .from("employees")
       .select(
-        "id, employee_code, first_name, last_name, nickname, status, social_security, stipend_start_date, stipend_daily_rate, employment_types(name, key)"
+        "id, employee_code, first_name, last_name, nickname, status, social_security, bank_name, bank_account, stipend_start_date, stipend_daily_rate, employment_types(name, key)"
       )
       .in("status", ["active", "probation", "intern", "freelance"])
       .order("employee_code"),
@@ -91,6 +93,8 @@ export async function computePayroll(supabase: any, year: number, month: number)
       sso,
       wht,
       net: pay + bonusV + welfareV - sso - wht,
+      bankName: e.bank_name ?? null,
+      bankAccount: e.bank_account ?? null,
     };
   });
 
