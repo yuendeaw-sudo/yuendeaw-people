@@ -38,14 +38,18 @@ export default async function PeoplePage() {
     .order("created_at", { ascending: false });
 
   const list = employees ?? [];
+  const isAlumni = (e: any) => e.status === "alumni" || e.status === "inactive";
+  const active = list.filter((e) => !isAlumni(e));
+  const alumni = list.filter(isAlumni).sort(byTenure);
   const groupOf = (e: any) => {
     const k = e.employment_types?.key;
     return KNOWN.includes(k) ? k : "other";
   };
 
   const sections = [
-    ...SECTIONS.map((s) => ({ ...s, people: list.filter((e) => groupOf(e) === s.key).sort(byTenure) })),
-    { key: "other", label: "อื่น ๆ", icon: "User", people: list.filter((e) => groupOf(e) === "other").sort(byTenure) },
+    ...SECTIONS.map((s) => ({ ...s, people: active.filter((e) => groupOf(e) === s.key).sort(byTenure) })),
+    { key: "other", label: "อื่น ๆ", icon: "User", people: active.filter((e) => groupOf(e) === "other").sort(byTenure) },
+    { key: "alumni", label: "ศิษย์เก่า / ออกแล้ว", icon: "Archive", people: alumni },
   ].filter((s) => s.people.length > 0);
 
   return (
@@ -53,7 +57,7 @@ export default async function PeoplePage() {
       <PageHeader
         title="บุคคลากร"
         icon="Users"
-        subtitle={`${list.length} คนในระบบ`}
+        subtitle={`${active.length} คนทำงานอยู่${alumni.length ? ` · ศิษย์เก่า ${alumni.length}` : ""}`}
         action={
           can(ctx, "people", "create") ? (
             <Link href="/people/new" className="btn-brand">

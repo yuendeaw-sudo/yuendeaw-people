@@ -62,6 +62,10 @@ const AUDIT_LABEL: Record<string, { label: string; icon: string; tone: string }>
   upload_document: { label: "เพิ่มเอกสาร (HR)", icon: "FileUp", tone: "sand" },
   delete_document: { label: "ลบเอกสาร (HR)", icon: "FileX", tone: "sand" },
   view_salary: { label: "เปิดดูค่าตอบแทน", icon: "Eye", tone: "sand" },
+  adjust_compensation: { label: "ปรับเงินเดือน", icon: "TrendingUp", tone: "mint" },
+  offboard: { label: "บันทึกการออกจากงาน", icon: "LogOut", tone: "rose" },
+  convert_employment: { label: "ปรับรูปแบบการจ้าง", icon: "Repeat", tone: "amber" },
+  reactivate: { label: "นำกลับเข้าทำงาน", icon: "RotateCcw", tone: "mint" },
 };
 
 export function EmployeeTabs({

@@ -9,6 +9,7 @@ import { Icon } from "@/components/Icon";
 import { EmployeeTabs } from "@/components/people/EmployeeTabs";
 import { QuestEvidence } from "@/components/quests/QuestEvidence";
 import { InviteButton } from "@/components/people/InviteButton";
+import { EmployeeStatusActions } from "@/components/people/EmployeeStatusActions";
 import { JobDescriptionCard } from "@/components/people/JobDescriptionCard";
 import { stipendDays, stipendAmount, evalDueFromStart, internEvalState, DEFAULT_STIPEND } from "@/lib/intern";
 
@@ -177,6 +178,14 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
                 hasAccount={!!emp.user_id}
                 invitedAt={emp.invited_at ?? null}
               />
+              {ctx.isOwner && (
+                <EmployeeStatusActions
+                  employeeId={emp.id}
+                  isIntern={et?.key === "intern"}
+                  status={emp.status}
+                  name={emp.nickname || emp.first_name}
+                />
+              )}
             </div>
           )}
         </div>
