@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getAccessContext, audit } from "@/lib/auth";
+import { getAccessContext } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -57,7 +57,6 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
       .eq("employee_id", id)
       .order("effective_date", { ascending: false });
     comp = data ?? [];
-    await audit(ctx, "view_salary", { module: "people", entity: "employees", entityId: id });
   }
 
   const { data: docs } = await supabase
@@ -74,6 +73,7 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
       .from("audit_logs")
       .select("id, action, actor_email, meta, created_at")
       .eq("entity_id", id)
+      .neq("action", "view_salary") // ไม่แสดง log การเปิดดูค่าตอบแทน (รก ไม่จำเป็น)
       .order("created_at", { ascending: false })
       .limit(30);
     auditLogs = data ?? [];
