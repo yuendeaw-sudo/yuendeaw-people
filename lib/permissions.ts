@@ -78,10 +78,53 @@ export const NAV: { section: string; items: NavItem[] }[] = [
   },
 ];
 
+// เมนูเฉพาะ owner — จัดกลุ่มแบบบริหารคน: เวลา&การลา + น้องฝึก อยู่ "บริหารคน",
+// คู่มือพนักงานอยู่ "เครื่องมือ", ตัด Growth Quest ออก (owner เห็นทุกอย่างอยู่แล้ว)
+export const NAV_OWNER: { section: string; items: NavItem[] }[] = [
+  {
+    section: "ของฉัน",
+    items: [
+      { key: "dashboard", label: "หน้าหลัก", href: "/dashboard", icon: "LayoutDashboard" },
+      { key: "profile", label: "โปรไฟล์ของฉัน", href: "/profile", icon: "User" },
+    ],
+  },
+  {
+    section: "บริหารคน",
+    items: [
+      { key: "people", label: "บุคคลากร", href: "/people", icon: "Users", module: "people" },
+      { key: "applications", label: "ใบสมัคร", href: "/applications", icon: "FileUser", module: "applications" },
+      { key: "leave", label: "เวลา & การลา", href: "/time-leave", icon: "CalendarClock" },
+      { key: "my-interns", label: "น้องฝึกในความดูแล", href: "/my-interns", icon: "GraduationCap" },
+      { key: "rewards", label: "รางวัล & สวัสดิการ", href: "/rewards", icon: "Gift", module: "rewards" },
+      { key: "incidents", label: "วินัย & เหตุการณ์", href: "/incidents", icon: "ShieldAlert", module: "incidents" },
+      { key: "performance", label: "Performance", href: "/performance", icon: "Target", ownerOnly: true },
+    ],
+  },
+  {
+    section: "เครื่องมือ",
+    items: [
+      { key: "ai", label: "AI Workplace", href: "/ai-workplace", icon: "Sparkles", module: "ai_workplace" },
+      { key: "knowledge", label: "Knowledge Base", href: "/knowledge", icon: "Library", module: "knowledge" },
+      { key: "subscriptions", label: "Subscriptions", href: "/subscriptions", icon: "CreditCard", module: "subscriptions" },
+      { key: "handbook", label: "คู่มือพนักงาน", href: "/handbook", icon: "BookOpen" },
+      { key: "assets", label: "ทรัพย์สินบริษัท", href: "/assets", icon: "Boxes", module: "assets" },
+    ],
+  },
+  {
+    section: "ผู้บริหาร",
+    items: [
+      { key: "payroll", label: "Payroll", href: "/payroll", icon: "Wallet", module: "finance" },
+      { key: "owner", label: "Owner Room", href: "/owner", icon: "Crown", ownerOnly: true },
+      { key: "admin", label: "ตั้งค่าระบบ", href: "/admin", icon: "Settings", module: "admin_settings" },
+    ],
+  },
+];
+
 export function visibleNav(ctx: AccessContext, opts?: { isMentor?: boolean; isIntern?: boolean }) {
   const isMentor = opts?.isMentor ?? false;
   const isIntern = opts?.isIntern ?? false;
-  return NAV.map((group) => ({
+  const source = ctx.isOwner ? NAV_OWNER : NAV;
+  return source.map((group) => ({
     section: group.section,
     items: group.items.filter((item) => {
       if (item.hideForIntern && isIntern) return false;
