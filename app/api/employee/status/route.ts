@@ -54,9 +54,10 @@ export async function POST(req: Request) {
     if (!(reason in EXIT_REASON_LABEL)) return new Response("เหตุผลไม่ถูกต้อง", { status: 400 });
     const note = body.note ? String(body.note).trim() : null;
     const endDate = body.end_date || today;
+    // เก็บเหตุผล/หมายเหตุไว้ใน audit log (ด้านล่าง) — ไม่ต้องพึ่งคอลัมน์เพิ่ม
     const { error } = await admin
       .from("employees")
-      .update({ status: "alumni", end_date: endDate, exit_reason: reason, exit_note: note })
+      .update({ status: "alumni", end_date: endDate })
       .eq("id", employeeId);
     if (error) return new Response(error.message, { status: 500 });
     await log("offboard", { title: EXIT_REASON_LABEL[reason], reason, note, end_date: endDate });
@@ -78,8 +79,6 @@ export async function POST(req: Request) {
         employment_type_id: et.id,
         status: CONVERT_STATUS[toKey],
         end_date: null,
-        exit_reason: null,
-        exit_note: null,
       })
       .eq("id", employeeId);
     if (error) return new Response(error.message, { status: 500 });
@@ -90,7 +89,7 @@ export async function POST(req: Request) {
   if (action === "reactivate") {
     const { error } = await admin
       .from("employees")
-      .update({ status: "active", end_date: null, exit_reason: null, exit_note: null })
+      .update({ status: "active", end_date: null })
       .eq("id", employeeId);
     if (error) return new Response(error.message, { status: 500 });
     await log("reactivate", { title: "นำกลับเข้าทำงาน" });
