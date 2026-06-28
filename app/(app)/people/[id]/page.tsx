@@ -10,7 +10,7 @@ import { EmployeeTabs } from "@/components/people/EmployeeTabs";
 import { QuestEvidence } from "@/components/quests/QuestEvidence";
 import { InviteButton } from "@/components/people/InviteButton";
 import { JobDescriptionCard } from "@/components/people/JobDescriptionCard";
-import { paidDays, stipendAmount, evalDueFromStart, DEFAULT_STIPEND } from "@/lib/intern";
+import { paidDays, stipendAmount, evalDueFromStart, internEvalState, DEFAULT_STIPEND } from "@/lib/intern";
 
 function tenure(start?: string | null) {
   if (!start) return null;
@@ -90,7 +90,7 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
     const today = new Date().toISOString().slice(0, 10);
     const [{ data: logs }, { data: evals }] = await Promise.all([
       admin.from("intern_logs").select("log_date, content").eq("intern_id", id).order("log_date", { ascending: false }),
-      admin.from("intern_evaluations").select("status, score, comment, evaluated_at").eq("intern_id", id).order("created_at", { ascending: false }),
+      admin.from("intern_evaluations").select("evaluator_id, status, score, comment, evaluated_at").eq("intern_id", id).order("created_at", { ascending: false }),
     ]);
     const allLogs = logs ?? [];
     const logDates = allLogs.map((l) => l.log_date);
@@ -99,15 +99,24 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
     const monthStart = today.slice(0, 7) + "-01";
     const totalDays = paidDays(logDates, stipendStart);
     const monthDays = paidDays(logDates, stipendStart, monthStart);
-    const lastEval = (evals ?? [])[0] ?? null;
+    const evState = internEvalState({
+      stipendStart,
+      managerId: (emp as any).manager_id ?? null,
+      evals: (evals ?? []).map((e: any) => ({ evaluator_id: e.evaluator_id, status: e.status })),
+      isOwner: ctx.isOwner,
+      isPeopleEdit: can(ctx, "people", "edit"),
+      myEmployeeId: ctx.employeeId,
+    });
     intern = {
       employeeId: id,
       logs: allLogs.slice(0, 30),
       evals: evals ?? [],
-      evalStatus: lastEval?.status ?? null,
+      stage: evState.stage,
       dueDate: evalDueFromStart((emp as any).start_date),
       mentorName: (emp as any).manager?.nickname || (emp as any).manager?.first_name || null,
-      canEvaluate: ctx.isOwner || can(ctx, "people", "edit") || (emp as any).manager_id === ctx.employeeId,
+      canEvaluate: evState.canEvaluate,
+      evalLabel: evState.evalLabel,
+      mentorPassed: evState.mentorPassed,
       stipend: {
         stipendStart,
         rate,

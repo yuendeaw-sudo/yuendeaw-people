@@ -281,12 +281,14 @@ export function EmployeeTabs({
               <div>
                 <div className="text-xs text-muted">สถานะประเมิน</div>
                 <div className="font-semibold">
-                  {intern.evalStatus === "passed" ? (
-                    <span className="text-mint">ผ่านแล้ว</span>
-                  ) : intern.evalStatus === "failed" ? (
+                  {intern.stage === "passed" ? (
+                    <span className="text-mint">ผ่านสมบูรณ์</span>
+                  ) : intern.stage === "mentor_passed" ? (
+                    <span className="text-amber-700">พี่เลี้ยงผ่านแล้ว · รอเจ้าของอนุมัติ</span>
+                  ) : intern.stage === "failed" ? (
                     <span className="text-rose">ไม่ผ่าน</span>
                   ) : (
-                    <span className="text-gold">รอประเมิน</span>
+                    <span className="text-gold">รอพี่เลี้ยงประเมิน</span>
                   )}
                 </div>
                 {intern.dueDate && !intern.stipend.stipendStart && (
@@ -305,11 +307,15 @@ export function EmployeeTabs({
               </div>
             </div>
 
-            {intern.canEvaluate && (
+            {intern.canEvaluate ? (
               <div className="mb-5">
-                <InternEvaluation employeeId={intern.employeeId} defaultStipendStart={intern.dueDate} />
+                <InternEvaluation employeeId={intern.employeeId} defaultStipendStart={intern.dueDate} label={intern.evalLabel} />
               </div>
-            )}
+            ) : intern.stage !== "passed" && !intern.mentorPassed ? (
+              <p className="text-xs text-muted rounded-xl bg-sand/40 px-3 py-2 mb-5">
+                ⏳ รอพี่เลี้ยง (หัวหน้างาน) ประเมินก่อน จึงจะอนุมัติได้
+              </p>
+            ) : null}
 
             <h4 className="text-sm font-semibold text-muted mb-2">บันทึกประจำวัน ({intern.logs.length})</h4>
             {intern.logs.length ? (

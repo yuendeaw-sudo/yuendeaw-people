@@ -48,19 +48,28 @@ export async function POST(req: Request) {
   });
   if (evErr) return new Response(evErr.message, { status: 500 });
 
-  // ผ่านแล้วเริ่มนับเบี้ยตั้งแต่วันที่กำหนด (set/อัปเดตได้ เพื่อแก้ย้อนหลัง)
-  if (status === "passed") {
+  // ลำดับขั้น: เบี้ยเริ่มนับเมื่อ "เจ้าของ/HR อนุมัติ" เท่านั้น
+  // (พี่เลี้ยงประเมินผ่าน = บันทึกไว้รอเจ้าของอนุมัติ ยังไม่เริ่มเบี้ย)
+  const isFinalApprover = ctx.isOwner || can(ctx, "people", "edit");
+  const finalized = status === "passed" && isFinalApprover;
+  if (finalized) {
     await admin.from("employees").update({ stipend_start_date: effective }).eq("id", internId);
   }
 
   // แจ้งน้องฝึก (notifications ใช้ user_id ของบัญชี)
   if (intern.user_id) {
+    const isMentorPass = status === "passed" && !finalized;
     await admin.from("notifications").insert({
       user_id: intern.user_id,
-      title: status === "passed" ? "ผ่านการประเมินฝึกงาน 🎉" : "ผลการประเมินฝึกงาน",
-      body:
-        status === "passed"
-          ? "ยินดีด้วย! เริ่มได้รับเบี้ยฝึกรายวันตั้งแต่วันนี้"
+      title: finalized
+        ? "ผ่านการประเมินฝึกงาน 🎉"
+        : isMentorPass
+          ? "พี่เลี้ยงประเมินผ่านแล้ว ⏳"
+          : "ผลการประเมินฝึกงาน",
+      body: finalized
+        ? "ยินดีด้วย! เริ่มได้รับเบี้ยฝึกรายวันแล้ว"
+        : isMentorPass
+          ? "รอเจ้าของอนุมัติขั้นสุดท้าย เบี้ยจะเริ่มนับหลังอนุมัติ"
           : "พี่เลี้ยงได้บันทึกผลการประเมินแล้ว",
       kind: "intern_eval",
     });

@@ -8,10 +8,12 @@ import { toCE, formatThaiDate } from "@/lib/utils";
 export function InternEvaluation({
   employeeId,
   defaultStipendStart,
+  label = "ประเมินน้องฝึก",
 }: {
   employeeId: string;
   /** วันเริ่มเบี้ยตามนโยบาย = วันที่น้องครบ 1 เดือน (ใช้เป็นค่าเริ่มต้น) */
   defaultStipendStart?: string | null;
+  label?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -51,7 +53,7 @@ export function InternEvaluation({
   if (!open) {
     return (
       <button onClick={() => setOpen(true)} className="btn-brand">
-        <Icon name="ClipboardCheck" className="size-4" /> ประเมินน้องฝึก
+        <Icon name="ClipboardCheck" className="size-4" /> {label}
       </button>
     );
   }
