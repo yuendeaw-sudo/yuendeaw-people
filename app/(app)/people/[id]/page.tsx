@@ -9,6 +9,7 @@ import { Icon } from "@/components/Icon";
 import { EmployeeTabs } from "@/components/people/EmployeeTabs";
 import { QuestEvidence } from "@/components/quests/QuestEvidence";
 import { InviteButton } from "@/components/people/InviteButton";
+import { JobDescriptionCard } from "@/components/people/JobDescriptionCard";
 import { paidDays, stipendAmount, evalDueFromStart, DEFAULT_STIPEND } from "@/lib/intern";
 
 function tenure(start?: string | null) {
@@ -118,6 +119,18 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
     };
   }
 
+  // Job Description: owner / people:edit / หัวหน้างานของคนนี้ แก้ได้ · owner ส่งต่อได้
+  const canEditJD = ctx.isOwner || can(ctx, "people", "edit") || (emp as any).manager_id === ctx.employeeId;
+  let jdTargets: { id: string; name: string }[] = [];
+  if (ctx.isOwner) {
+    const { data: list } = await supabase
+      .from("employees")
+      .select("id, first_name, nickname")
+      .neq("id", id)
+      .order("first_name");
+    jdTargets = (list ?? []).map((e: any) => ({ id: e.id, name: e.nickname || e.first_name }));
+  }
+
   return (
     <div>
       <Link href="/people" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink mb-4">
@@ -158,6 +171,16 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
             </div>
           )}
         </div>
+      </div>
+
+      <div className="mb-5">
+        <JobDescriptionCard
+          employeeId={id}
+          initialContent={(emp as any).job_description ?? null}
+          canEdit={canEditJD}
+          canTransfer={ctx.isOwner}
+          transferTargets={jdTargets}
+        />
       </div>
 
       <QuestEvidence employeeId={id} />

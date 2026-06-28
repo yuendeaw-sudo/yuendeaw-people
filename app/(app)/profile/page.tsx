@@ -11,6 +11,7 @@ import { SalaryReveal } from "@/components/profile/SalaryReveal";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
 import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
 import { EmployeeDocuments } from "@/components/people/EmployeeDocuments";
+import { JobDescriptionCard } from "@/components/people/JobDescriptionCard";
 
 function Field({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
@@ -120,6 +121,14 @@ export default async function ProfilePage() {
           </div>
         </div>
       </Card>
+
+      <div className="mb-5">
+        <JobDescriptionCard
+          employeeId={ctx.employeeId!}
+          initialContent={(emp as any).job_description ?? null}
+          canEdit
+        />
+      </div>
 
       {internData && (
         <Card className="mb-5">
