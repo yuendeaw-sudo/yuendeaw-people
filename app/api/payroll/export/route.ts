@@ -25,13 +25,13 @@ export async function GET(req: Request) {
   const supabase = await createClient();
   const { rows, total, period } = await computePayroll(supabase, year, month);
 
-  const header = ["รหัส", "ชื่อ-นามสกุล", "ประเภท", "สถานะ", "เงินเดือน", "เบี้ยฝึก", "โบนัสเดือนนี้", "สวัสดิการเดือนนี้", "รวม"];
+  const header = ["รหัส", "ชื่อ-นามสกุล", "ประเภท", "สถานะ", "เงินเดือน/เบี้ย", "โบนัส", "สวัสดิการ", "ประกันสังคม", "หัก ณ ที่จ่าย", "สุทธิ"];
   const lines = [
     header.map(csvCell).join(","),
     ...rows.map((r) =>
-      [r.code, r.name, r.type, r.status, r.salary, r.stipend, r.bonus, r.welfare, r.net].map(csvCell).join(",")
+      [r.code, r.name, r.type, r.status, r.pay, r.bonus, r.welfare, r.sso, r.wht, r.net].map(csvCell).join(",")
     ),
-    ["", "", "", "", "", "", "", "รวมทั้งหมด", total].map(csvCell).join(","),
+    ["", "", "", "", "", "", "", "", "รวมจ่ายสุทธิ", total].map(csvCell).join(","),
   ];
   // BOM so Excel reads UTF-8 Thai correctly
   const csv = "﻿" + lines.join("\r\n");

@@ -6,19 +6,13 @@ import { Icon } from "@/components/Icon";
 import { Badge, statusBadge } from "@/components/ui";
 import { formatThaiDate, formatTHB } from "@/lib/utils";
 import { workModeLabel } from "@/lib/phase2-labels";
+import { computeSSO } from "@/lib/payroll";
 import { EmployeeDocuments } from "@/components/people/EmployeeDocuments";
 import { InternEvaluation } from "@/components/intern/InternEvaluation";
 
 type Tab = { key: string; label: string; icon: string };
 
 const MASK = "••••••";
-
-// Thai social security: 5% of wage, wage floored at 1,650 and capped at 15,000 → max 750/mo.
-function computeSSO(salary?: number | null) {
-  if (!salary || salary <= 0) return 0;
-  const wage = Math.min(Math.max(salary, 1650), 15000);
-  return Math.round(wage * 0.05);
-}
 
 function Row({ label, value }: { label: string; value?: React.ReactNode }) {
   return (

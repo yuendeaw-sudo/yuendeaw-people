@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { formatTHB } from "@/lib/utils";
+import { computeSSO } from "@/lib/payroll";
 
 const COMP_LABEL: Record<string, string> = {
   monthly_salary: "ต่อเดือน",
@@ -14,12 +15,6 @@ const COMP_LABEL: Record<string, string> = {
   per_show: "ต่อโชว์",
   project: "ต่อโปรเจกต์",
 };
-
-// Thai social security: 5% of wage, wage floored 1,650 capped 15,000 → max 750/mo.
-function computeSSO(salary: number) {
-  if (!salary || salary <= 0) return 0;
-  return Math.round(Math.min(Math.max(salary, 1650), 15000) * 0.05);
-}
 
 const MASK = "••••••";
 
