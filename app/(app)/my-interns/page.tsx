@@ -74,7 +74,7 @@ export default async function MyInternsPage() {
                   </div>
                 </div>
 
-                <InternEvaluation employeeId={it.id} />
+                <InternEvaluation employeeId={it.id} defaultStipendStart={due} />
 
                 <h4 className="text-sm font-semibold text-muted mt-5 mb-2">บันทึกประจำวัน ({logs.length})</h4>
                 {logs.length ? (

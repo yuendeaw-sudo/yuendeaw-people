@@ -32,6 +32,12 @@ export async function POST(req: Request) {
   }
 
   const today = new Date().toISOString().slice(0, 10);
+  // วันเริ่มรับเบี้ย — ตั้งย้อนหลังได้ (เช่น วันที่น้องครบ 1 เดือน) ถ้าประเมินช้า
+  const effective =
+    typeof body.stipend_start_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.stipend_start_date)
+      ? body.stipend_start_date
+      : today;
+
   const { error: evErr } = await admin.from("intern_evaluations").insert({
     intern_id: internId,
     evaluator_id: ctx.employeeId,
@@ -42,9 +48,9 @@ export async function POST(req: Request) {
   });
   if (evErr) return new Response(evErr.message, { status: 500 });
 
-  // ผ่านแล้วเริ่มนับเบี้ย (ถ้ายังไม่เคยตั้ง)
-  if (status === "passed" && !intern.stipend_start_date) {
-    await admin.from("employees").update({ stipend_start_date: today }).eq("id", internId);
+  // ผ่านแล้วเริ่มนับเบี้ยตั้งแต่วันที่กำหนด (set/อัปเดตได้ เพื่อแก้ย้อนหลัง)
+  if (status === "passed") {
+    await admin.from("employees").update({ stipend_start_date: effective }).eq("id", internId);
   }
 
   // แจ้งน้องฝึก (notifications ใช้ user_id ของบัญชี)

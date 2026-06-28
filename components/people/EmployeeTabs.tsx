@@ -307,7 +307,7 @@ export function EmployeeTabs({
 
             {intern.canEvaluate && (
               <div className="mb-5">
-                <InternEvaluation employeeId={intern.employeeId} />
+                <InternEvaluation employeeId={intern.employeeId} defaultStipendStart={intern.dueDate} />
               </div>
             )}
 
