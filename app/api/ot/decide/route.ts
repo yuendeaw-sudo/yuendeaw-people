@@ -1,7 +1,7 @@
 import { getAccessContext } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { OT_TYPE_LABEL } from "@/lib/ot";
+import { OT_TYPE_LABEL, otRate } from "@/lib/ot";
 import { formatThaiDate } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -35,14 +35,23 @@ export async function POST(req: Request) {
   if (error) return new Response(error.message, { status: 500 });
   if (!row) return new Response("ไม่พบคำขอ หรือถูกตัดสินไปแล้ว", { status: 404 });
 
-  // แจ้งพนักงาน
-  const { data: emp } = await admin.from("employees").select("user_id").eq("id", row.employee_id).maybeSingle();
+  // ตอนอนุมัติ: คิดเงินจากเรต OT ล่าสุดของพนักงาน (owner อาจเพิ่งตั้ง/ปรับ)
+  const { data: emp } = await admin
+    .from("employees")
+    .select("user_id, ot_rate")
+    .eq("id", row.employee_id)
+    .maybeSingle();
+  let amount = Number(row.amount);
+  if (status === "approved") {
+    amount = otRate((emp as any)?.ot_rate);
+    await admin.from("ot_requests").update({ amount }).eq("id", id);
+  }
   if (emp?.user_id) {
     await admin.from("notifications").insert({
       user_id: emp.user_id,
       title: status === "approved" ? "อนุมัติ OT แล้ว ✅" : "OT ไม่ได้รับอนุมัติ",
       body: `${OT_TYPE_LABEL[row.ot_type] ?? "OT"} · ${formatThaiDate(row.work_date)}${
-        status === "approved" ? ` · ${Number(row.amount).toLocaleString()} บาท` : ""
+        status === "approved" ? ` · ${amount.toLocaleString()} บาท` : ""
       }`,
       link: "/time-leave",
       kind: "ot",

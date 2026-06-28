@@ -2,7 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge, statusBadge } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { formatThaiDate } from "@/lib/utils";
-import { OT_RATE, OT_TYPE_LABEL, OT_TYPES, OT_NOT_ELIGIBLE } from "@/lib/ot";
+import { OT_TYPE_LABEL, OT_TYPES, OT_NOT_ELIGIBLE } from "@/lib/ot";
 import { OvertimeForm } from "@/components/leave/OvertimeForm";
 
 // การ์ด "ทำงานล่วงเวลา (OT)" — ของพนักงานคนปัจจุบัน
@@ -11,7 +11,7 @@ export async function OvertimeCard({ employeeId }: { employeeId: string }) {
   const year = new Date().getFullYear();
   const { data: rows } = await admin
     .from("ot_requests")
-    .select("id, work_date, ot_type, amount, reason, status, reviewer_comment, created_at")
+    .select("id, work_date, ot_type, amount, hours, reason, status, reviewer_comment, created_at")
     .eq("employee_id", employeeId)
     .order("work_date", { ascending: false });
 
@@ -27,7 +27,6 @@ export async function OvertimeCard({ employeeId }: { employeeId: string }) {
         <div className="flex items-center gap-2">
           <Icon name="Clock" className="size-5 text-gold" />
           <h2 className="font-semibold text-base">ทำงานล่วงเวลา (OT)</h2>
-          <span className="chip bg-brand-soft text-gold">เหมา {OT_RATE.toLocaleString()} / ครั้ง</span>
         </div>
         <OvertimeForm />
       </div>
@@ -74,7 +73,10 @@ export async function OvertimeCard({ employeeId }: { employeeId: string }) {
             return (
               <div key={r.id} className="flex items-center gap-3 text-sm border-t border-sand/70 pt-2">
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium">{OT_TYPE_LABEL[r.ot_type] ?? "OT"}</div>
+                  <div className="font-medium">
+                    {OT_TYPE_LABEL[r.ot_type] ?? "OT"}
+                    {r.hours ? <span className="text-muted font-normal"> · {Number(r.hours)} ชม.</span> : ""}
+                  </div>
                   <div className="text-xs text-muted">
                     {formatThaiDate(r.work_date)}
                     {r.reason ? ` · ${r.reason}` : ""}

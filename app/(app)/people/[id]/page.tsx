@@ -203,7 +203,7 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
 
       <QuestEvidence employeeId={id} />
 
-      <EmployeeTabs e={emp} comp={comp} documents={docs ?? []} canSensitive={canSensitive} editHref={editHref} auditLogs={auditLogs} intern={intern} />
+      <EmployeeTabs e={emp} comp={comp} documents={docs ?? []} canSensitive={canSensitive} editHref={editHref} auditLogs={auditLogs} intern={intern} isOwner={ctx.isOwner} />
     </div>
   );
 }

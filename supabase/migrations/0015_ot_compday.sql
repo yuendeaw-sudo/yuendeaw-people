@@ -6,7 +6,8 @@ create table if not exists public.ot_requests (
   employee_id   uuid not null references public.employees(id) on delete cascade,
   work_date     date not null,
   ot_type       text not null,                 -- scope_studio | weekend_shoot
-  amount        numeric(8,2) not null default 600,
+  amount        numeric(8,2) not null default 600,  -- snapshot จากเรตของพนักงาน (employees.ot_rate)
+  hours         numeric(4,1),                  -- จำนวนชั่วโมงที่ทำ (พนักงานกรอก)
   reason        text,
   status        text not null default 'pending',  -- pending | approved | rejected
   decided_by    uuid references public.app_users(id),

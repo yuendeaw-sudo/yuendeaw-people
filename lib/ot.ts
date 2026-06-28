@@ -1,5 +1,12 @@
-// OT (ทำงานล่วงเวลา) — เรตเหมา 600 บาท/ครั้ง ตามที่ตกลงกับพนักงาน
-export const OT_RATE = 600;
+// OT (ทำงานล่วงเวลา) — เรตต่อครั้ง "owner กำหนดรายคน" จากหน้าโปรไฟล์พนักงาน (employees.ot_rate)
+// ถ้า owner ยังไม่ตั้งเรตให้คนนั้น ใช้ค่าเริ่มต้นนี้ (ไม่โชว์ label นี้ให้พนักงาน)
+export const DEFAULT_OT_RATE = 600;
+
+// เรตจริงของพนักงาน = ot_rate ที่ owner ตั้ง, ถ้าไม่มีใช้ค่าเริ่มต้น
+export function otRate(empOtRate?: number | null): number {
+  const n = Number(empOtRate);
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_OT_RATE;
+}
 
 export type OtType = {
   key: string;

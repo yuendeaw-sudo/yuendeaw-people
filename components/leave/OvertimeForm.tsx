@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icon";
-import { OT_TYPES, OT_RATE, OT_NOT_ELIGIBLE } from "@/lib/ot";
+import { OT_TYPES, OT_NOT_ELIGIBLE } from "@/lib/ot";
 
 export function OvertimeForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [otType, setOtType] = useState(OT_TYPES[0].key);
   const [date, setDate] = useState("");
+  const [hours, setHours] = useState("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -17,17 +18,20 @@ export function OvertimeForm() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!date) return setErr("เลือกวันที่ก่อนนะ");
+    if (!hours || Number(hours) <= 0) return setErr("กรอกจำนวนชั่วโมง");
+    if (!reason.trim()) return setErr("กรอกรายละเอียดงานก่อนนะ");
     setBusy(true);
     setErr(null);
     try {
       const r = await fetch("/api/ot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workDate: date, otType, reason }),
+        body: JSON.stringify({ workDate: date, otType, hours: Number(hours), reason }),
       });
       if (!r.ok) return setErr((await r.text()) || "ส่งคำขอไม่สำเร็จ");
       setOpen(false);
       setDate("");
+      setHours("");
       setReason("");
       router.refresh();
     } finally {
@@ -53,9 +57,7 @@ export function OvertimeForm() {
             <Icon name="X" className="size-5" />
           </button>
         </div>
-        <p className="text-sm text-muted mb-4">
-          เบิกเหมา <b className="text-ink">{OT_RATE.toLocaleString()} บาท/ครั้ง</b> · หัวหน้า/ผู้อนุมัติจะตรวจอีกที
-        </p>
+        <p className="text-sm text-muted mb-4">หัวหน้า/ผู้อนุมัติจะตรวจและคิดค่าตอบแทนให้ตามเรตที่บริษัทกำหนด</p>
 
         <div className="space-y-2 mb-4">
           {OT_TYPES.map((t) => (
@@ -76,13 +78,19 @@ export function OvertimeForm() {
         </div>
 
         <div className="space-y-4">
-          <div>
-            <label className="label">วันที่ทำงาน</label>
-            <input type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} required />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">วันที่ทำงาน</label>
+              <input type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} required />
+            </div>
+            <div>
+              <label className="label">จำนวนชั่วโมง</label>
+              <input type="number" step="0.5" min="0" className="input" placeholder="เช่น 4" value={hours} onChange={(e) => setHours(e.target.value)} required />
+            </div>
           </div>
           <div>
-            <label className="label">รายละเอียดงาน (ไม่บังคับ)</label>
-            <input className="input" placeholder="เช่น มาช่วยถ่ายคอนเทนต์ / ออกกองที่..." value={reason} onChange={(e) => setReason(e.target.value)} />
+            <label className="label">รายละเอียดงาน <span className="text-rose">*</span></label>
+            <textarea className="input min-h-[64px]" placeholder="เป็นงานตัวไหน ทำอะไรบ้าง เช่น มาช่วยถ่ายคอนเทนต์ลง TikTok / ออกกองที่เชียงใหม่" value={reason} onChange={(e) => setReason(e.target.value)} required />
           </div>
           <p className="text-[11px] text-muted bg-sand/50 rounded-lg px-3 py-2 flex gap-1.5">
             <Icon name="Info" className="size-3.5 shrink-0 mt-0.5" /> {OT_NOT_ELIGIBLE}

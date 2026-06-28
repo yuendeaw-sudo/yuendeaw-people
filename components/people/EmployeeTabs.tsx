@@ -8,6 +8,8 @@ import { formatThaiDate, formatTHB } from "@/lib/utils";
 import { workModeLabel } from "@/lib/phase2-labels";
 import { computeSSO } from "@/lib/payroll";
 import { CompAdjustForm } from "@/components/people/CompAdjustForm";
+import { OtRateForm } from "@/components/people/OtRateForm";
+import { otRate, DEFAULT_OT_RATE } from "@/lib/ot";
 import { EmployeeDocuments } from "@/components/people/EmployeeDocuments";
 import { InternEvaluation } from "@/components/intern/InternEvaluation";
 
@@ -76,6 +78,7 @@ export function EmployeeTabs({
   editHref,
   auditLogs = [],
   intern = null,
+  isOwner = false,
 }: {
   e: any;
   comp: any[] | null;
@@ -84,6 +87,7 @@ export function EmployeeTabs({
   editHref: string | null;
   auditLogs?: any[];
   intern?: any;
+  isOwner?: boolean;
 }) {
   const [tab, setTab] = useState("personal");
   const [reveal, setReveal] = useState(false);
@@ -212,6 +216,21 @@ export function EmployeeTabs({
                     ) : (
                       <span className="text-muted">ไม่หัก</span>
                     )
+                  }
+                />
+                <Row
+                  label="เรตค่า OT (ต่อครั้ง)"
+                  value={
+                    <div className="flex items-center gap-2">
+                      <span>
+                        {e.ot_rate != null ? (
+                          formatTHB(otRate(e.ot_rate))
+                        ) : (
+                          <span className="text-muted">{formatTHB(DEFAULT_OT_RATE)} (ค่าเริ่มต้น)</span>
+                        )}
+                      </span>
+                      {isOwner && <OtRateForm employeeId={e.id} current={e.ot_rate} />}
+                    </div>
                   }
                 />
                 <div className="h-px bg-sand/60 my-3" />

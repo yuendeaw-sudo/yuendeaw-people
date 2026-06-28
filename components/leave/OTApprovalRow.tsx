@@ -34,10 +34,10 @@ export function OTApprovalRow({ req }: { req: any }) {
           {emp?.first_name} {emp?.nickname && `(${emp.nickname})`}
         </div>
         <div className="text-xs text-muted">
-          {OT_TYPE_LABEL[req.ot_type] ?? "OT"} · {formatThaiDate(req.work_date)} ·{" "}
-          {Number(req.amount).toLocaleString()} บาท
+          {OT_TYPE_LABEL[req.ot_type] ?? "OT"} · {formatThaiDate(req.work_date)}
+          {req.hours ? ` · ${Number(req.hours)} ชม.` : ""} · {Number(req.amount).toLocaleString()} บาท
         </div>
-        {req.reason && <div className="text-xs text-muted mt-0.5 italic">“{req.reason}”</div>}
+        {req.reason && <div className="text-xs text-ink mt-0.5 italic">“{req.reason}”</div>}
       </div>
       <div className="flex gap-2">
         <button onClick={() => decide("approved")} disabled={!!busy} className="btn bg-mint text-white text-xs px-3 py-1.5">
