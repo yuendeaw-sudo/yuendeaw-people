@@ -60,7 +60,7 @@ export function EmployeeDocuments({
     );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {ZONES.map((z) => (
         <DocZone
           key={z.type}
@@ -98,6 +98,7 @@ function DocZone({
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [open, setOpen] = useState(docs.length > 0); // เปิดเฉพาะหมวดที่มีไฟล์
 
   async function upload(rawFile: File) {
     setBusy(true);
@@ -139,13 +140,22 @@ function DocZone({
       : d.external_url || "#";
 
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-2">
-        <Icon name={zone.icon} className="size-4 text-gold" />
-        <h4 className="font-semibold text-sm">{zone.label}</h4>
-        {docs.length > 0 && <span className="text-xs text-muted">({docs.length})</span>}
-      </div>
+    <div className="rounded-xl border border-sand overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-sand/40 transition"
+      >
+        <Icon name={zone.icon} className="size-4 text-gold shrink-0" />
+        <h4 className="font-semibold text-sm flex-1">{zone.label}</h4>
+        {docs.length > 0 && (
+          <span className="text-xs font-medium text-grape bg-grape-soft rounded-full px-2 py-0.5">{docs.length}</span>
+        )}
+        <Icon name="ChevronDown" className={`size-4 text-muted transition ${open ? "rotate-180" : ""}`} />
+      </button>
 
+      {open && (
+      <div className="px-3 pb-3 pt-1">
       {/* existing files */}
       {canView && docs.length > 0 && (
         <div className="space-y-2 mb-2">
@@ -224,6 +234,8 @@ function DocZone({
           )}
           {err && <p className="text-xs text-rose mt-2">{err}</p>}
         </div>
+      )}
+      </div>
       )}
     </div>
   );
