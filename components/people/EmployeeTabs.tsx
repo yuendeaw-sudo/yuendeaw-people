@@ -9,6 +9,7 @@ import { workModeLabel } from "@/lib/phase2-labels";
 import { computeSSO } from "@/lib/payroll";
 import { CompAdjustForm } from "@/components/people/CompAdjustForm";
 import { OtRateForm } from "@/components/people/OtRateForm";
+import { CompDayOffGrant } from "@/components/leave/CompDayOffGrant";
 import { otRate, DEFAULT_OT_RATE } from "@/lib/ot";
 import { EmployeeDocuments } from "@/components/people/EmployeeDocuments";
 import { InternEvaluation } from "@/components/intern/InternEvaluation";
@@ -79,6 +80,7 @@ export function EmployeeTabs({
   auditLogs = [],
   intern = null,
   isOwner = false,
+  compDays = [],
 }: {
   e: any;
   comp: any[] | null;
@@ -88,6 +90,7 @@ export function EmployeeTabs({
   auditLogs?: any[];
   intern?: any;
   isOwner?: boolean;
+  compDays?: any[];
 }) {
   const [tab, setTab] = useState("personal");
   const [reveal, setReveal] = useState(false);
@@ -275,6 +278,50 @@ export function EmployeeTabs({
                   <p className="text-sm text-muted">ยังไม่มีประวัติการปรับเงินเดือน — กด “ปรับเงินเดือน” เพื่อเพิ่ม</p>
                 )}
               </Block>
+
+              {isOwner && (
+                <Block
+                  title="วันหยุดสะสมจากการทุ่มเท"
+                  icon="Palmtree"
+                  right={
+                    <CompDayOffGrant
+                      fixedEmployee={{ id: e.id, name: e.nickname || e.first_name }}
+                    />
+                  }
+                >
+                  <div className="rounded-xl2 bg-mint-soft/40 p-4 mb-3">
+                    <div className="text-xs text-muted">รวมวันหยุดสะสมที่ให้ไปแล้ว</div>
+                    <div className="text-3xl font-extrabold text-mint mt-1">
+                      {(() => {
+                        const t = (compDays ?? []).reduce((s: number, g: any) => s + Number(g.days || 0), 0);
+                        return t % 1 === 0 ? t : t.toFixed(1);
+                      })()}
+                      <span className="text-base font-normal text-muted"> วัน</span>
+                    </div>
+                  </div>
+                  {compDays && compDays.length > 0 ? (
+                    <div className="space-y-2">
+                      {compDays.map((g: any) => (
+                        <div key={g.id} className="flex items-center gap-3 rounded-xl bg-sand/40 px-3 py-2 text-sm">
+                          <Icon name="Gift" className="size-4 text-mint shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium">
+                              +{g.days % 1 === 0 ? g.days : Number(g.days).toFixed(1)} วัน
+                              {g.work_date ? (
+                                <span className="text-muted font-normal"> · จากงานวันที่ {formatThaiDate(g.work_date)}</span>
+                              ) : null}
+                            </div>
+                            {g.note && <div className="text-xs text-muted italic">“{g.note}”</div>}
+                          </div>
+                          {g.hours ? <span className="text-[11px] text-muted">{Number(g.hours)} ชม.</span> : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted">ยังไม่เคยให้วันหยุดสะสม — กด “ให้วันหยุดสะสม” เพื่อให้น้องคนนี้</p>
+                  )}
+                </Block>
+              )}
             </>
           ) : (
             <div className="text-center py-12">

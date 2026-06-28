@@ -4,10 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icon";
 
-export function CompDayOffGrant({ employees }: { employees: { id: string; name: string }[] }) {
+export function CompDayOffGrant({
+  employees = [],
+  fixedEmployee,
+}: {
+  employees?: { id: string; name: string }[];
+  fixedEmployee?: { id: string; name: string };
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ employeeId: "", days: "1", hours: "", workDate: "", note: "" });
+  const [f, setF] = useState({ employeeId: fixedEmployee?.id ?? "", days: "1", hours: "", workDate: "", note: "" });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
@@ -32,7 +38,7 @@ export function CompDayOffGrant({ employees }: { employees: { id: string; name: 
       });
       if (!r.ok) return setErr((await r.text()) || "บันทึกไม่สำเร็จ");
       setOpen(false);
-      setF({ employeeId: "", days: "1", hours: "", workDate: "", note: "" });
+      setF({ employeeId: fixedEmployee?.id ?? "", days: "1", hours: "", workDate: "", note: "" });
       router.refresh();
     } finally {
       setBusy(false);
@@ -61,15 +67,22 @@ export function CompDayOffGrant({ employees }: { employees: { id: string; name: 
           ขอบคุณน้องที่ทุ่มเทเกินหน้าที่ — ให้วันหยุดสะสมไว้ใช้ทีหลังตามดุลยพินิจ
         </p>
         <div className="space-y-4">
-          <div>
-            <label className="label">พนักงาน</label>
-            <select className="input" value={f.employeeId} onChange={(e) => set("employeeId", e.target.value)} required>
-              <option value="">— เลือก —</option>
-              {employees.map((e) => (
-                <option key={e.id} value={e.id}>{e.name}</option>
-              ))}
-            </select>
-          </div>
+          {fixedEmployee ? (
+            <div>
+              <label className="label">พนักงาน</label>
+              <div className="input bg-sand/40 flex items-center">{fixedEmployee.name}</div>
+            </div>
+          ) : (
+            <div>
+              <label className="label">พนักงาน</label>
+              <select className="input" value={f.employeeId} onChange={(e) => set("employeeId", e.target.value)} required>
+                <option value="">— เลือก —</option>
+                {employees.map((e) => (
+                  <option key={e.id} value={e.id}>{e.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">จำนวนวัน</label>

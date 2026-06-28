@@ -80,6 +80,18 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
     auditLogs = data ?? [];
   }
 
+  // วันหยุดสะสม (change day off) — owner ดู/ให้รายคน
+  let compDays: any[] = [];
+  if (ctx.isOwner) {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("comp_day_off")
+      .select("id, days, hours, work_date, note, created_at")
+      .eq("employee_id", id)
+      .order("created_at", { ascending: false });
+    compDays = data ?? [];
+  }
+
   const sb = statusBadge(emp.status);
   const et = (emp as any).employment_types;
   const editHref = can(ctx, "people", "edit") ? `/people/${id}/edit` : null;
@@ -203,7 +215,7 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
 
       <QuestEvidence employeeId={id} />
 
-      <EmployeeTabs e={emp} comp={comp} documents={docs ?? []} canSensitive={canSensitive} editHref={editHref} auditLogs={auditLogs} intern={intern} isOwner={ctx.isOwner} />
+      <EmployeeTabs e={emp} comp={comp} documents={docs ?? []} canSensitive={canSensitive} editHref={editHref} auditLogs={auditLogs} intern={intern} isOwner={ctx.isOwner} compDays={compDays} />
     </div>
   );
 }
