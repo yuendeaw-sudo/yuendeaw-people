@@ -7,6 +7,7 @@ import { Badge, statusBadge } from "@/components/ui";
 import { formatThaiDate, formatTHB } from "@/lib/utils";
 import { workModeLabel } from "@/lib/phase2-labels";
 import { computeSSO } from "@/lib/payroll";
+import { CompAdjustForm } from "@/components/people/CompAdjustForm";
 import { EmployeeDocuments } from "@/components/people/EmployeeDocuments";
 import { InternEvaluation } from "@/components/intern/InternEvaluation";
 
@@ -215,8 +216,12 @@ export function EmployeeTabs({
                 <Row label="ประเภทบัญชี" value={e.bank_account_type} />
                 <Row label="สาขา" value={e.bank_branch} />
               </Block>
-              {comp && comp.length > 0 && (
-                <Block title="ประวัติการปรับเพิ่ม / ลดเงินเดือน" icon="History">
+              <Block
+                title="ประวัติการปรับเพิ่ม / ลดเงินเดือน"
+                icon="History"
+                right={editHref ? <CompAdjustForm employeeId={e.id} /> : undefined}
+              >
+                {comp && comp.length > 0 ? (
                   <div className="space-y-2">
                     {comp.map((c, i) => {
                       const older = comp[i + 1]; // list is newest-first
@@ -243,8 +248,10 @@ export function EmployeeTabs({
                       );
                     })}
                   </div>
-                </Block>
-              )}
+                ) : (
+                  <p className="text-sm text-muted">ยังไม่มีประวัติการปรับเงินเดือน — กด “ปรับเงินเดือน” เพื่อเพิ่ม</p>
+                )}
+              </Block>
             </>
           ) : (
             <div className="text-center py-12">
