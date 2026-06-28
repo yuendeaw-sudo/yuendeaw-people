@@ -85,18 +85,145 @@ export default async function TimeLeavePage() {
     };
   }
 
-  const [leaveTypes, personal, pending, special] = await Promise.all([
+  // owner: ภาพรวมการลาของทีม (คนที่อนุมัติแล้ว ยังไม่จบ) — ไม่ใช่ WFH/ออกกอง
+  async function loadTeamLeaves() {
+    if (!ctx.isOwner) return { teamLeaves: [] as any[], onLeaveToday: [] as any[] };
+    const today = new Date().toISOString().slice(0, 10);
+    const { data } = await supabase
+      .from("leave_requests")
+      .select(
+        "id, start_date, end_date, total_days, leave_types(name, key), employees!leave_requests_employee_id_fkey(first_name, nickname)"
+      )
+      .eq("status", "approved")
+      .gte("end_date", today)
+      .order("start_date", { ascending: true })
+      .limit(60);
+    const teamLeaves = (data ?? []).filter(
+      (r: any) => r.employees && !["wfh", "onsite", "event"].includes(r.leave_types?.key)
+    );
+    const onLeaveToday = teamLeaves.filter((r: any) => r.start_date <= today && r.end_date >= today);
+    return { teamLeaves, onLeaveToday };
+  }
+
+  const [leaveTypes, personal, pending, special, team] = await Promise.all([
     loadLeaveTypes(),
     loadPersonal(),
     loadPending(),
     loadSpecial(),
+    loadTeamLeaves(),
   ]);
   const { myRequests, empInfo, limits } = personal;
   const { spEmployees, spLeaveTypes } = special;
+  const { teamLeaves, onLeaveToday } = team;
 
   const myConfirm = myRequests.filter((r: any) => r.status === "awaiting_confirm");
   const history = myRequests.filter((r: any) => r.status !== "awaiting_confirm");
 
+  // ===========================================================================
+  // OWNER VIEW — หน้าบริหารคน: อนุมัติ + ภาพรวมทีม + ให้สิทธิ์ (ไม่มีวันลา/OT ส่วนตัว)
+  // ===========================================================================
+  if (ctx.isOwner) {
+    const today = new Date().toISOString().slice(0, 10);
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="เวลา & การลา"
+          icon="CalendarClock"
+          subtitle="บริหารวันลา OT และเวลาทำงานของทีม"
+          action={
+            <div className="flex flex-wrap gap-2">
+              <CompDayOffGrant employees={spEmployees} />
+              <SpecialLeaveForm employees={spEmployees} leaveTypes={spLeaveTypes} />
+            </div>
+          }
+        />
+
+        {/* สรุปสั้น ๆ ให้เห็นภาพทีม */}
+        <div className="grid sm:grid-cols-3 gap-4">
+          <Card className="!p-4">
+            <div className="flex items-center gap-2 text-sm text-muted">
+              <Icon name="Inbox" className="size-4 text-amber" /> รออนุมัติการลา
+            </div>
+            <div className="text-3xl font-extrabold mt-1">{pending.length}</div>
+          </Card>
+          <Card className="!p-4">
+            <div className="flex items-center gap-2 text-sm text-muted">
+              <Icon name="Palmtree" className="size-4 text-mint" /> ทีมลาวันนี้
+            </div>
+            <div className="text-3xl font-extrabold mt-1">{onLeaveToday.length} <span className="text-base font-normal text-muted">คน</span></div>
+          </Card>
+          <Card className="!p-4">
+            <div className="flex items-center gap-2 text-sm text-muted">
+              <Icon name="CalendarDays" className="size-4 text-grape" /> ลาที่อนุมัติล่วงหน้า
+            </div>
+            <div className="text-3xl font-extrabold mt-1">{teamLeaves.length} <span className="text-base font-normal text-muted">รายการ</span></div>
+          </Card>
+        </div>
+
+        <p className="text-xs text-muted -mt-2 flex items-center gap-1.5">
+          <Icon name="Crown" className="size-3.5 text-gold" />
+          ในฐานะเจ้าของ คุณลาได้ตามต้องการ — หน้านี้จึงเน้นดูแลการลา/OT ของทีม
+        </p>
+
+        {/* OT รออนุมัติ */}
+        <OTApprovals />
+
+        {/* การลารออนุมัติ */}
+        <Card>
+          <h2 className="font-semibold text-base mb-4 flex items-center gap-2">
+            การลารออนุมัติ
+            {pending.length > 0 && <Badge tone="amber">{pending.length}</Badge>}
+          </h2>
+          {pending.length ? (
+            <div className="space-y-2">
+              {pending.map((r) => (
+                <ApprovalRow key={r.id} req={r} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted">ไม่มีคำขอลาที่รออนุมัติ 🎉</p>
+          )}
+        </Card>
+
+        {/* ภาพรวมการลาของทีม */}
+        <Card>
+          <h2 className="font-semibold text-base mb-4 flex items-center gap-2">
+            <Icon name="Users" className="size-4 text-gold" /> ใครลาช่วงนี้บ้าง
+          </h2>
+          {teamLeaves.length ? (
+            <div className="space-y-2">
+              {teamLeaves.map((r: any) => {
+                const active = r.start_date <= today && r.end_date >= today;
+                const emp = r.employees;
+                return (
+                  <div key={r.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-sand/40 px-3 py-2.5 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <span className="font-semibold">{emp?.nickname || emp?.first_name}</span>
+                      <span className="text-muted"> · {r.leave_types?.name}</span>
+                    </div>
+                    <span className="text-xs text-muted">
+                      {formatThaiDate(r.start_date)}
+                      {r.end_date !== r.start_date && ` – ${formatThaiDate(r.end_date)}`} · {r.total_days} วัน
+                    </span>
+                    {active && <Badge tone="mint">ลาอยู่</Badge>}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted">ช่วงนี้ไม่มีใครลา 🎉</p>
+          )}
+        </Card>
+
+        {/* policy details (secondary, collapsible) */}
+        <LeavePolicyGuide />
+      </div>
+    );
+  }
+
+  // ===========================================================================
+  // EMPLOYEE VIEW — วันลา/OT ส่วนตัว + อนุมัติ (ถ้ามีสิทธิ์)
+  // ===========================================================================
   return (
     <div className="space-y-6">
       <PageHeader
@@ -105,7 +232,6 @@ export default async function TimeLeavePage() {
         subtitle="ดูวันลาคงเหลือ ขอลา และแจ้งทำงานนอกออฟฟิศ"
         action={
           <div className="flex flex-wrap gap-2">
-            {ctx.isOwner && <CompDayOffGrant employees={spEmployees} />}
             {canKeySpecial && <SpecialLeaveForm employees={spEmployees} leaveTypes={spLeaveTypes} />}
             {ctx.employeeId && <LeaveRequestForm leaveTypes={leaveTypes ?? []} employeeId={ctx.employeeId} limits={limits} />}
           </div>
