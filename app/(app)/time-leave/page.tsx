@@ -10,6 +10,10 @@ import { ConfirmLeaveRow } from "@/components/leave/ConfirmLeaveRow";
 import { ApprovalRow } from "@/components/leave/ApprovalRow";
 import { LeaveBalances } from "@/components/leave/LeaveBalances";
 import { WorkArrangement } from "@/components/leave/WorkArrangement";
+import { OvertimeCard } from "@/components/leave/OvertimeCard";
+import { OTApprovals } from "@/components/leave/OTApprovals";
+import { CompDayOffCard } from "@/components/leave/CompDayOffCard";
+import { CompDayOffGrant } from "@/components/leave/CompDayOffGrant";
 import { LeavePolicyGuide } from "@/components/leave/LeavePolicyGuide";
 import { computeLeaveLimits, type LeaveLimits } from "@/lib/leave";
 
@@ -101,6 +105,7 @@ export default async function TimeLeavePage() {
         subtitle="ดูวันลาคงเหลือ ขอลา และแจ้งทำงานนอกออฟฟิศ"
         action={
           <div className="flex flex-wrap gap-2">
+            {ctx.isOwner && <CompDayOffGrant employees={spEmployees} />}
             {canKeySpecial && <SpecialLeaveForm employees={spEmployees} leaveTypes={spLeaveTypes} />}
             {ctx.employeeId && <LeaveRequestForm leaveTypes={leaveTypes ?? []} employeeId={ctx.employeeId} limits={limits} />}
           </div>
@@ -118,6 +123,15 @@ export default async function TimeLeavePage() {
 
       {/* work-from-home / on-site (not leave) */}
       {ctx.employeeId && <WorkArrangement employeeId={ctx.employeeId} />}
+
+      {/* OT (ทำงานล่วงเวลา) — ต่อจากการ์ดทำงานนอกสถานที่ */}
+      {ctx.employeeId && <OvertimeCard employeeId={ctx.employeeId} />}
+
+      {/* วันหยุดสะสมจากการทุ่มเท (โชว์เมื่อมี) */}
+      {ctx.employeeId && <CompDayOffCard employeeId={ctx.employeeId} />}
+
+      {/* OT รออนุมัติ (ผู้อนุมัติเห็น) */}
+      {(ctx.isOwner || can(ctx, "time_leave", "approve")) && <OTApprovals />}
 
       {/* approvals */}
       {canApprove && (
