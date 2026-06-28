@@ -1,7 +1,7 @@
 // Monthly payroll roll-up: latest salary + intern stipend + this-month bonus + welfare.
 // Reads sensitive comp data — callers must already be gated by sensitive_view/finance.
 
-import { paidDays, stipendAmount, DEFAULT_STIPEND } from "@/lib/intern";
+import { stipendDays, stipendAmount, DEFAULT_STIPEND } from "@/lib/intern";
 
 export type PayrollRow = {
   employeeId: string;
@@ -21,6 +21,7 @@ export async function computePayroll(supabase: any, year: number, month: number)
   const lastDay = new Date(year, month, 0).getDate();
   const start = `${year}-${mm}-01`;
   const end = `${year}-${mm}-${String(lastDay).padStart(2, "0")}`;
+  const todayYmd = new Date().toISOString().slice(0, 10);
 
   const [{ data: emps }, { data: comp }, { data: bonus }, { data: welfare }, { data: internLogs }] = await Promise.all([
     supabase
@@ -54,7 +55,7 @@ export async function computePayroll(supabase: any, year: number, month: number)
 
   const rows: PayrollRow[] = (emps ?? []).map((e: any) => {
     const salary = latestComp[e.id] ?? 0;
-    const days = paidDays(logsByIntern[e.id] ?? [], e.stipend_start_date ?? null, start, end);
+    const days = stipendDays(logsByIntern[e.id] ?? [], e.stipend_start_date ?? null, todayYmd, start, end);
     const stipend = stipendAmount(days, Number(e.stipend_daily_rate) || DEFAULT_STIPEND);
     const bonusV = bonusM[e.id] ?? 0;
     const welfareV = welfareM[e.id] ?? 0;

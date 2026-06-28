@@ -4,7 +4,7 @@ import { can } from "@/lib/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHeader, Card, EmptyState, Avatar, Badge } from "@/components/ui";
 import { formatThaiDate, formatTHB } from "@/lib/utils";
-import { paidDays, evalDueFromStart, internEvalState, DEFAULT_STIPEND } from "@/lib/intern";
+import { stipendDays, evalDueFromStart, internEvalState, DEFAULT_STIPEND } from "@/lib/intern";
 import { InternEvaluation } from "@/components/intern/InternEvaluation";
 
 export default async function MyInternsPage() {
@@ -57,8 +57,8 @@ export default async function MyInternsPage() {
         it,
         logs,
         rate,
-        monthDays: paidDays(logDates, start, monthStart),
-        totalDays: paidDays(logDates, start),
+        monthDays: stipendDays(logDates, start, today, monthStart),
+        totalDays: stipendDays(logDates, start, today),
         due: evalDueFromStart((it as any).start_date),
         state,
       };

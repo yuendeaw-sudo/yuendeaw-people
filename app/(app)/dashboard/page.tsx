@@ -8,7 +8,7 @@ import { formatThaiDate } from "@/lib/utils";
 import { LeaveBalances } from "@/components/leave/LeaveBalances";
 import { LeavePolicyGuide } from "@/components/leave/LeavePolicyGuide";
 import { InternDailyLog } from "@/components/intern/InternDailyLog";
-import { paidDays, stipendAmount, evalDueFromStart, DEFAULT_STIPEND } from "@/lib/intern";
+import { stipendDays, stipendAmount, evalDueFromStart, DEFAULT_STIPEND } from "@/lib/intern";
 
 export default async function DashboardPage() {
   const ctx = (await getAccessContext())!;
@@ -112,8 +112,8 @@ export default async function DashboardPage() {
     const stipendStart = (emp as any)?.stipend_start_date ?? null;
     const rate = Number((emp as any)?.stipend_daily_rate) || DEFAULT_STIPEND;
     const start = (emp as any)?.start_date ?? empStart;
-    const totalDays = paidDays(logDates, stipendStart);
-    const monthDays = paidDays(logDates, stipendStart, monthStart);
+    const totalDays = stipendDays(logDates, stipendStart, today);
+    const monthDays = stipendDays(logDates, stipendStart, today, monthStart);
     const daysSinceStart = start ? Math.max(0, Math.floor((Date.parse(today) - Date.parse(start)) / 86400000)) : 0;
     internHome = {
       todayDate: today,

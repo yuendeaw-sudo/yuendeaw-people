@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, PageHeader, Badge, statusBadge, EmptyState } from "@/components/ui";
 import { formatThaiDate } from "@/lib/utils";
 import { workModeLabel } from "@/lib/phase2-labels";
-import { paidDays, stipendAmount, DEFAULT_STIPEND } from "@/lib/intern";
+import { stipendDays, stipendAmount, DEFAULT_STIPEND } from "@/lib/intern";
 import { Icon } from "@/components/Icon";
 import { InternDailyLog } from "@/components/intern/InternDailyLog";
 import { SalaryReveal } from "@/components/profile/SalaryReveal";
@@ -82,8 +82,8 @@ export default async function ProfilePage() {
     const stipendStart = (emp as any).stipend_start_date ?? null;
     const rate = Number((emp as any).stipend_daily_rate) || DEFAULT_STIPEND;
     const monthStart = today.slice(0, 7) + "-01";
-    const totalDays = paidDays(logDates, stipendStart);
-    const monthDays = paidDays(logDates, stipendStart, monthStart);
+    const totalDays = stipendDays(logDates, stipendStart, today);
+    const monthDays = stipendDays(logDates, stipendStart, today, monthStart);
     internData = {
       todayDate: today,
       todayLog: allLogs.find((l) => l.log_date === today)?.content ?? "",

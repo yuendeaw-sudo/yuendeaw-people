@@ -11,20 +11,46 @@ export function evalDueFromStart(startDate?: string | null): string | null {
   return d.toISOString().slice(0, 10);
 }
 
-/** นับวันที่จ่ายเบี้ย = log ที่ลงวันที่ >= วันเริ่มนับ (และอยู่ในช่วง from..to ถ้าระบุ) */
-export function paidDays(
+// ตั้งแต่วันนี้เป็นต้นไปต้องเขียน log วันนั้นจึงนับเบี้ย; ก่อนหน้านี้นับวันทำงาน (จ-ศ) อัตโนมัติ
+export const LOG_REQUIRED_FROM = "2026-06-29";
+
+function ymdToUTC(ymd: string): number {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return Date.UTC(y, (m || 1) - 1, d || 1);
+}
+function isWeekdayYmd(ymd: string): boolean {
+  const wd = new Date(ymdToUTC(ymd)).getUTCDay();
+  return wd >= 1 && wd <= 5; // จันทร์–ศุกร์ (หยุดเสาร์-อาทิตย์)
+}
+
+/**
+ * นับวันจ่ายเบี้ยฝึก — เฉพาะวันทำงาน จันทร์–ศุกร์ ตั้งแต่ stipendStart ถึง todayYmd
+ * (จำกัดช่วง from..to ได้). ก่อน LOG_REQUIRED_FROM นับวันทำงานอัตโนมัติ;
+ * ตั้งแต่ LOG_REQUIRED_FROM เป็นต้นไป ต้องมี log วันนั้นจึงนับ.
+ */
+export function stipendDays(
   logDates: string[],
   stipendStart: string | null,
+  todayYmd: string,
   fromYmd?: string,
   toYmd?: string
 ): number {
   if (!stipendStart) return 0; // ยังไม่ผ่านประเมิน → ไม่มีเบี้ย
-  return logDates.filter((d) => {
-    if (d < stipendStart) return false;
-    if (fromYmd && d < fromYmd) return false;
-    if (toYmd && d > toYmd) return false;
-    return true;
-  }).length;
+  const logSet = new Set(logDates);
+  let start = stipendStart;
+  if (fromYmd && fromYmd > start) start = fromYmd;
+  let end = todayYmd;
+  if (toYmd && toYmd < end) end = toYmd;
+  if (start > end) return 0;
+
+  let count = 0;
+  for (let ms = ymdToUTC(start); ms <= ymdToUTC(end); ms += 86400000) {
+    const ymd = new Date(ms).toISOString().slice(0, 10);
+    if (!isWeekdayYmd(ymd)) continue; // นับเฉพาะ จ-ศ
+    if (ymd < LOG_REQUIRED_FROM) count++; // นับอัตโนมัติ (ไม่ต้องมี log)
+    else if (logSet.has(ymd)) count++; // ต้องมี log วันนั้น
+  }
+  return count;
 }
 
 export function stipendAmount(days: number, rate?: number | null): number {

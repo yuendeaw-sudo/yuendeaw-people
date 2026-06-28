@@ -10,7 +10,7 @@ import { EmployeeTabs } from "@/components/people/EmployeeTabs";
 import { QuestEvidence } from "@/components/quests/QuestEvidence";
 import { InviteButton } from "@/components/people/InviteButton";
 import { JobDescriptionCard } from "@/components/people/JobDescriptionCard";
-import { paidDays, stipendAmount, evalDueFromStart, internEvalState, DEFAULT_STIPEND } from "@/lib/intern";
+import { stipendDays, stipendAmount, evalDueFromStart, internEvalState, DEFAULT_STIPEND } from "@/lib/intern";
 
 function tenure(start?: string | null) {
   if (!start) return null;
@@ -97,8 +97,8 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
     const stipendStart = (emp as any).stipend_start_date ?? null;
     const rate = Number((emp as any).stipend_daily_rate) || DEFAULT_STIPEND;
     const monthStart = today.slice(0, 7) + "-01";
-    const totalDays = paidDays(logDates, stipendStart);
-    const monthDays = paidDays(logDates, stipendStart, monthStart);
+    const totalDays = stipendDays(logDates, stipendStart, today);
+    const monthDays = stipendDays(logDates, stipendStart, today, monthStart);
     const evState = internEvalState({
       stipendStart,
       managerId: (emp as any).manager_id ?? null,
