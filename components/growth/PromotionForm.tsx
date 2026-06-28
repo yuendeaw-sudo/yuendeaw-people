@@ -1,6 +1,5 @@
 "use client";
 
-import { toCE } from "@/lib/utils";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -89,7 +88,7 @@ export function PromotionForm({
           </div>
           <div>
             <label className="label">วันที่มีผล (ถ้าอนุมัติ)</label>
-            <input type="date" className="input" value={f.effective_date} onChange={(e) => setF({ ...f, effective_date: toCE(e.target.value) })} />
+            <input type="date" className="input" value={f.effective_date} onChange={(e) => setF({ ...f, effective_date: e.target.value })} />
           </div>
           {error && <p className="text-sm text-rose bg-rose-soft rounded-lg px-3 py-2">{error}</p>}
           <button type="submit" disabled={loading} className="btn-brand w-full">

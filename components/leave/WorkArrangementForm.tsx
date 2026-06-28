@@ -1,6 +1,5 @@
 "use client";
 
-import { toCE } from "@/lib/utils";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -101,7 +100,7 @@ export function WorkArrangementForm({
         <div className="space-y-4">
           <div>
             <label className="label">วันที่</label>
-            <input type="date" className="input" value={date} onChange={(e) => setDate(toCE(e.target.value))} required />
+            <input type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} required />
           </div>
           <div>
             <label className="label">หมายเหตุ (ถ้ามี)</label>

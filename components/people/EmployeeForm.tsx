@@ -262,7 +262,7 @@ export function EmployeeForm({
                 onChange={(v) => set("national_id", formatThaiID(v))}
                 placeholder="X-XXXX-XXXXX-XX-X"
               />
-              <Input label="วันเกิด" type="date" value={f.birth_date} onChange={(v) => set("birth_date", toCE(v))} />
+              <Input label="วันเกิด" type="date" value={f.birth_date} onChange={(v) => set("birth_date", v)} />
             </>
           )}
         </div>
@@ -285,8 +285,8 @@ export function EmployeeForm({
           <Select label="รูปแบบการทำงาน" value={f.work_mode} onChange={(v) => set("work_mode", v)} options={WORK_MODES.map((s) => ({ id: s.v, name: s.label }))} placeholder="— เลือก —" />
           <Select label="ทีม" value={f.team_id} onChange={(v) => set("team_id", v)} options={options.teams} placeholder="— เลือก —" />
           <Select label="หัวหน้างาน" value={f.manager_id} onChange={(v) => set("manager_id", v)} options={options.managers} placeholder="— ไม่มี —" />
-          <Input label="วันเริ่มงาน" type="date" value={f.start_date} onChange={(v) => set("start_date", toCE(v))} />
-          <Input label="สิ้นสุดทดลองงาน" type="date" value={f.probation_end_date} onChange={(v) => set("probation_end_date", toCE(v))} />
+          <Input label="วันเริ่มงาน" type="date" value={f.start_date} onChange={(v) => set("start_date", v)} />
+          <Input label="สิ้นสุดทดลองงาน" type="date" value={f.probation_end_date} onChange={(v) => set("probation_end_date", v)} />
         </div>
 
         {isIntern && (
@@ -363,7 +363,7 @@ export function EmployeeForm({
               ]}
             />
             <Input label="จำนวนเงิน (บาท)" type="number" value={comp.amount} onChange={(v) => setComp({ ...comp, amount: v })} />
-            <Input label="มีผลตั้งแต่" type="date" value={comp.effective_date} onChange={(v) => setComp({ ...comp, effective_date: toCE(v) })} />
+            <Input label="มีผลตั้งแต่" type="date" value={comp.effective_date} onChange={(v) => setComp({ ...comp, effective_date: v })} />
           </div>
           <div className="grid sm:grid-cols-2 gap-4 mt-4">
             <Select

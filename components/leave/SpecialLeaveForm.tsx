@@ -1,6 +1,5 @@
 "use client";
 
-import { toCE } from "@/lib/utils";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -108,11 +107,11 @@ export function SpecialLeaveForm({ employees, leaveTypes }: { employees: Emp[]; 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">วันที่เริ่ม</label>
-              <input type="date" className="input" value={f.start} onChange={(e) => set("start", toCE(e.target.value))} required />
+              <input type="date" className="input" value={f.start} onChange={(e) => set("start", e.target.value)} required />
             </div>
             <div>
               <label className="label">ถึงวันที่</label>
-              <input type="date" className="input" value={f.end} onChange={(e) => set("end", toCE(e.target.value))} />
+              <input type="date" className="input" value={f.end} onChange={(e) => set("end", e.target.value)} />
             </div>
           </div>
           <div>

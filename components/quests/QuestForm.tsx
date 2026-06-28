@@ -1,6 +1,5 @@
 "use client";
 
-import { toCE } from "@/lib/utils";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -108,11 +107,11 @@ export function QuestForm({ employeeId }: { employeeId: string }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">วันเริ่ม</label>
-              <input type="date" className="input" value={f.start_date} onChange={(e) => set("start_date", toCE(e.target.value))} />
+              <input type="date" className="input" value={f.start_date} onChange={(e) => set("start_date", e.target.value)} />
             </div>
             <div>
               <label className="label">วันสิ้นสุด</label>
-              <input type="date" className="input" value={f.end_date} onChange={(e) => set("end_date", toCE(e.target.value))} />
+              <input type="date" className="input" value={f.end_date} onChange={(e) => set("end_date", e.target.value)} />
             </div>
           </div>
           <div>
