@@ -7,6 +7,7 @@ import { Icon } from "@/components/Icon";
 import { formatTHB, formatThaiDate } from "@/lib/utils";
 import { toTHB } from "@/lib/subscriptions";
 import { SubscriptionForm } from "@/components/subscriptions/SubscriptionForm";
+import { RenewControls } from "@/components/subscriptions/RenewControls";
 
 const STATUS: Record<string, { label: string; tone: string }> = {
   active: { label: "ใช้งานอยู่", tone: "mint" },
@@ -45,6 +46,9 @@ export default async function SubscriptionsPage() {
   const accounts = (accts ?? []).map((a: any) => ({ id: a.id, label: a.label, email: a.email }));
   const paymentMethods = (pms ?? []).map((p: any) => ({ id: p.id, label: p.label, last4: p.last4 }));
   const pmMap = new Map(paymentMethods.map((p) => [p.id, p]));
+
+  const today = new Date().toISOString().slice(0, 10);
+  const soon = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 
   const list = subs ?? [];
   const active = list.filter((s) => s.status !== "cancelled");
@@ -152,7 +156,18 @@ export default async function SubscriptionsPage() {
                                 <div className="text-[11px] text-muted">≈ {formatTHB(Math.round(toTHB(Number(s.cost), "USD")))}</div>
                               )}
                             </td>
-                            <td className="px-2 py-3 text-muted">{s.renewal_date ? formatThaiDate(s.renewal_date) : "—"}</td>
+                            <td className="px-2 py-3 text-muted">
+                              {s.renewal_date ? formatThaiDate(s.renewal_date) : "—"}
+                              {canEdit && s.renewal_date && s.status !== "cancelled" && s.renewal_date <= soon && (
+                                <RenewControls
+                                  id={s.id}
+                                  renewalDate={s.renewal_date}
+                                  billingDate={s.billing_date}
+                                  cycle={s.billing_cycle}
+                                  overdue={s.renewal_date <= today}
+                                />
+                              )}
+                            </td>
                             <td className="px-2 py-3 text-muted">{owner?.nickname || owner?.first_name || "—"}</td>
                             <td className="px-2 py-3 text-muted">
                               {pm ? `${pm.label}${pm.last4 ? ` ····${pm.last4}` : ""}` : "—"}
