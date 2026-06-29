@@ -12,6 +12,7 @@ import { InviteButton } from "@/components/people/InviteButton";
 import { EmployeeStatusActions } from "@/components/people/EmployeeStatusActions";
 import { JobDescriptionCard } from "@/components/people/JobDescriptionCard";
 import { stipendDays, stipendAmount, evalDueFromStart, internEvalState, DEFAULT_STIPEND } from "@/lib/intern";
+import { platformOf } from "@/lib/social";
 
 function tenure(start?: string | null) {
   if (!start) return null;
@@ -82,14 +83,22 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
 
   // วันหยุดสะสม (change day off) — owner ดู/ให้รายคน
   let compDays: any[] = [];
+  let socialAccess: any[] = [];
   if (ctx.isOwner) {
     const admin = createAdminClient();
-    const { data } = await admin
-      .from("comp_day_off")
-      .select("id, days, hours, work_date, note, created_at")
-      .eq("employee_id", id)
-      .order("created_at", { ascending: false });
-    compDays = data ?? [];
+    const [{ data: cd }, { data: social }] = await Promise.all([
+      admin
+        .from("comp_day_off")
+        .select("id, days, hours, work_date, note, created_at")
+        .eq("employee_id", id)
+        .order("created_at", { ascending: false }),
+      admin.from("social_accounts").select("id, platform, name, owner_id, admin_ids"),
+    ]);
+    compDays = cd ?? [];
+    // บัญชีโซเชียลที่คนนี้เป็นผู้ดูแล หรือมีสิทธิ์ admin (ใช้ตอน offboarding)
+    socialAccess = (social ?? []).filter(
+      (s: any) => s.owner_id === id || (Array.isArray(s.admin_ids) && s.admin_ids.includes(id))
+    );
   }
 
   const sb = statusBadge(emp.status);
@@ -214,6 +223,26 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
       </div>
 
       <QuestEvidence employeeId={id} />
+
+      {ctx.isOwner && socialAccess.length > 0 && (
+        <div className="card p-5 mb-5 border-amber-soft">
+          <h2 className="font-semibold text-base mb-1 flex items-center gap-2">
+            <Icon name="ShieldAlert" className="size-4 text-amber" /> สิทธิ์บัญชีโซเชียลที่ถืออยู่
+          </h2>
+          <p className="text-sm text-muted mb-3">เช็กตอนพนักงานออก — ต้องถอนสิทธิ์/เปลี่ยนรหัสบัญชีเหล่านี้</p>
+          <div className="flex flex-wrap gap-2">
+            {socialAccess.map((s: any) => {
+              const role = s.owner_id === id ? "ผู้ดูแล" : "admin";
+              return (
+                <span key={s.id} className="chip bg-sand text-ink">
+                  {platformOf(s.platform).emoji} {s.name}
+                  <span className="text-muted"> · {role}</span>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <EmployeeTabs e={emp} comp={comp} documents={docs ?? []} canSensitive={canSensitive} editHref={editHref} auditLogs={auditLogs} intern={intern} isOwner={ctx.isOwner} compDays={compDays} />
     </div>
