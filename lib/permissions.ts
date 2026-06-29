@@ -74,6 +74,7 @@ export const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { key: "payroll", label: "Payroll", href: "/payroll", icon: "Wallet", module: "finance" },
       { key: "owner", label: "Owner Room", href: "/owner", icon: "Crown", ownerOnly: true },
+      { key: "vault", label: "รหัสผ่านของฉัน", href: "/vault", icon: "KeyRound", ownerOnly: true },
       { key: "admin", label: "ตั้งค่าระบบ", href: "/admin", icon: "Settings", module: "admin_settings" },
     ],
   },
@@ -117,6 +118,7 @@ export const NAV_OWNER: { section: string; items: NavItem[] }[] = [
     items: [
       { key: "payroll", label: "Payroll", href: "/payroll", icon: "Wallet", module: "finance" },
       { key: "owner", label: "Owner Room", href: "/owner", icon: "Crown", ownerOnly: true },
+      { key: "vault", label: "รหัสผ่านของฉัน", href: "/vault", icon: "KeyRound", ownerOnly: true },
       { key: "admin", label: "ตั้งค่าระบบ", href: "/admin", icon: "Settings", module: "admin_settings" },
     ],
   },
