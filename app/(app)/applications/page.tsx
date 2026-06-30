@@ -27,7 +27,7 @@ export default async function ApplicationsPage() {
         icon="FileUser"
         subtitle="คลังคนเก่งที่อยากร่วมงานกับยืนเดี่ยว"
         action={
-          <a href="/apply/talent" target="_blank" className="btn-outline">
+          <a href="/apply/team" target="_blank" className="btn-outline">
             <Icon name="ExternalLink" className="size-4" /> หน้าสมัคร (public)
           </a>
         }
@@ -39,7 +39,7 @@ export default async function ApplicationsPage() {
         <EmptyState
           icon="FileUser"
           title="ยังไม่มีใบสมัคร"
-          subtitle="แชร์ลิงก์หน้าสมัคร /apply/talent ในโซเชียล เพื่อเริ่มเก็บ Talent Pool"
+          subtitle="แชร์ลิงก์หน้าสมัคร /apply/team ในโซเชียล เพื่อเริ่มเก็บ Talent Pool"
         />
       )}
     </div>
