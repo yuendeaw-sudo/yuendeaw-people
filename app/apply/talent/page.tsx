@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import {
   INTERESTED_ROLES,
-  CURRENT_STATUS,
-  WORK_TYPES,
+  CURRENT_STATUS_FULL,
+  CURRENT_STATUS_INTERN,
+  WORK_TYPES_FULL,
   SOCIAL_KEYS,
   questionsFor,
 } from "@/lib/applications";
@@ -116,13 +117,13 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
       const payload = {
         applicant_type: type,
         full_name: f.full_name, nickname: f.nickname, age: f.age, phone: f.phone, email: f.email,
-        line_id: f.line_id, location: f.location, work_type_interest: f.work_type_interest,
-        available_start_date: f.available_start_date || null, expected_compensation: f.expected_compensation,
+        line_id: f.line_id, location: f.location,
+        work_type_interest: isIntern ? "internship" : f.work_type_interest,
+        available_start_date: f.available_start_date || null,
+        expected_compensation: isIntern ? "" : f.expected_compensation,
         current_status: f.current_status, interested_roles: f.interested_roles,
         resume_url: f.resume_url, portfolio_url: f.portfolio_url,
-        portfolio_links: f.portfolio_links.filter((x: string) => x.trim()),
         social_links: f.social_links,
-        proud_works: f.proud_works.filter((p: any) => p.title.trim() || p.why.trim()),
         intro_video_url: f.intro_video_url,
         creative_answers: f.creative_answers, attitude_answers: isIntern ? {} : f.attitude_answers,
         answers: isIntern ? { university: f.university, faculty: f.faculty, internship_months: f.internship_months } : {},
@@ -158,10 +159,14 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
           <T label="อีเมล *" type="email" v={f.email} on={(v) => set("email", v)} />
           <T label="LINE ID" v={f.line_id} on={(v) => set("line_id", v)} />
           <T label="ที่อยู่ / จังหวัด" v={f.location} on={(v) => set("location", v)} />
-          <Sel label="สถานะปัจจุบัน" v={f.current_status} on={(v) => set("current_status", v)} opts={CURRENT_STATUS} />
-          <Sel label="รูปแบบงานที่สนใจ" v={f.work_type_interest} on={(v) => set("work_type_interest", v)} opts={WORK_TYPES} />
-          <T label="เริ่มงานได้เมื่อ" type="date" v={f.available_start_date} on={(v) => set("available_start_date", v)} />
-          <T label="ค่าตอบแทนที่คาดหวัง" v={f.expected_compensation} on={(v) => set("expected_compensation", v)} />
+          <Sel label="สถานะปัจจุบัน" v={f.current_status} on={(v) => set("current_status", v)} opts={isIntern ? CURRENT_STATUS_INTERN : CURRENT_STATUS_FULL} />
+          {!isIntern && (
+            <Sel label="รูปแบบงานที่สนใจ" v={f.work_type_interest} on={(v) => set("work_type_interest", v)} opts={WORK_TYPES_FULL} />
+          )}
+          <T label={isIntern ? "วันที่อยากเริ่มฝึกงาน" : "เริ่มงานได้เมื่อ"} type="date" v={f.available_start_date} on={(v) => set("available_start_date", v)} />
+          {!isIntern && (
+            <T label="ค่าตอบแทนที่คาดหวัง" v={f.expected_compensation} on={(v) => set("expected_compensation", v)} />
+          )}
         </div>
       </Section>
 
@@ -197,30 +202,13 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
           <T label="ลิงก์ Resume" v={f.resume_url} on={(v) => set("resume_url", v)} ph="https://..." />
           <T label="ลิงก์ Portfolio หลัก" v={f.portfolio_url} on={(v) => set("portfolio_url", v)} ph="https://..." />
         </div>
-        <label className="label mt-3">ลิงก์ผลงานเพิ่มเติม</label>
-        {f.portfolio_links.map((v: string, i: number) => (
-          <input key={i} className="input mb-2" placeholder={`ลิงก์ผลงาน #${i + 1}`} value={v}
-            onChange={(e) => { const a = [...f.portfolio_links]; a[i] = e.target.value; set("portfolio_links", a); }} />
-        ))}
-        <label className="label mt-2">โซเชียล</label>
+        <label className="label mt-3">โซเชียล</label>
         <div className="grid sm:grid-cols-2 gap-2">
           {SOCIAL_KEYS.map((s) => (
             <input key={s.key} className="input" placeholder={s.label} value={f.social_links[s.key] || ""}
               onChange={(e) => set("social_links", { ...f.social_links, [s.key]: e.target.value })} />
           ))}
         </div>
-      </Section>
-
-      {/* ผลงานที่ภูมิใจ */}
-      <Section title="ผลงานที่ภูมิใจที่สุด (1-3 ชิ้น)" hint="เขียนสั้น ๆ ว่า “ทำไมผลงานนี้ถึงเป็นตัวคุณ”">
-        {f.proud_works.map((p: any, i: number) => (
-          <div key={i} className="rounded-xl border border-sand p-3 mb-2">
-            <input className="input mb-2" placeholder={`ผลงานชิ้นที่ ${i + 1} (ชื่อ/ลิงก์)`} value={p.title}
-              onChange={(e) => { const a = [...f.proud_works]; a[i] = { ...a[i], title: e.target.value }; set("proud_works", a); }} />
-            <textarea className="input" rows={2} placeholder="ทำไมผลงานนี้ถึงเป็นตัวคุณ?" value={p.why}
-              onChange={(e) => { const a = [...f.proud_works]; a[i] = { ...a[i], why: e.target.value }; set("proud_works", a); }} />
-          </div>
-        ))}
       </Section>
 
       {/* คลิปแนะนำตัว */}

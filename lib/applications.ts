@@ -9,19 +9,29 @@ export const ROLE_LABEL: Record<string, string> = Object.fromEntries(
   INTERESTED_ROLES.map((r) => [r.key, r.label])
 );
 
-export const CURRENT_STATUS = [
-  { key: "student", label: "นักศึกษา" },
+// สถานะปัจจุบัน — ต่างกันตามกลุ่ม
+export const CURRENT_STATUS_FULL = [
   { key: "full_time_employee", label: "พนักงานประจำ" },
   { key: "freelance", label: "ฟรีแลนซ์" },
   { key: "unemployed", label: "กำลังว่าง / มองหางาน" },
+  { key: "new_grad", label: "นักศึกษาจบใหม่" },
   { key: "other", label: "อื่น ๆ" },
 ];
+export const CURRENT_STATUS_INTERN = [
+  { key: "student", label: "กำลังศึกษาอยู่" },
+  { key: "coop", label: "ฝึกสหกิจ / ฝึกงานภาคบังคับ" },
+  { key: "new_grad", label: "เพิ่งจบการศึกษา" },
+  { key: "other", label: "อื่น ๆ" },
+];
+export const CURRENT_STATUS_LABEL: Record<string, string> = Object.fromEntries(
+  [...CURRENT_STATUS_FULL, ...CURRENT_STATUS_INTERN].map((s) => [s.key, s.label])
+);
 
-export const WORK_TYPES = [
+// รูปแบบงานที่สนใจ (เฉพาะพนักงานประจำ; เด็กฝึก = internship อัตโนมัติ)
+export const WORK_TYPES_FULL = [
   { key: "full_time", label: "ประจำ" },
   { key: "part_time", label: "พาร์ทไทม์" },
   { key: "freelance", label: "ฟรีแลนซ์" },
-  { key: "internship", label: "ฝึกงาน" },
 ];
 
 // Status pipeline
@@ -96,6 +106,4 @@ export const SOCIAL_KEYS = [
   { key: "youtube", label: "YouTube" },
   { key: "instagram", label: "Instagram" },
   { key: "facebook", label: "Facebook" },
-  { key: "website", label: "Website" },
-  { key: "other", label: "อื่น ๆ" },
 ];
