@@ -10,6 +10,7 @@ const notoSansThai = Noto_Sans_Thai({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://people.yuendeaw.com"),
   title: "YuenDeaw People OS",
   description: "People OS สำหรับทีม YuenDeaw — บริหารคน เติบโต และทำงานแบบคนรุ่นใหม่",
 };
