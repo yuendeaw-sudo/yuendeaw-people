@@ -1,6 +1,8 @@
 import { getAccessContext } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ROLE_LABEL } from "@/lib/applications";
+import { googleCalendarConfigured, createInterviewEvent, addOneHour } from "@/lib/google-calendar";
 
 export const runtime = "nodejs";
 
@@ -42,13 +44,53 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     logAction = "status_changed";
     logTitle = `เปลี่ยนสถานะ → ${body.stage}`;
   } else if (action === "interview") {
-    // นัดสัมภาษณ์ — สร้าง Meet link (mock จนกว่าจะต่อ Google Calendar จริง)
+    // นัดสัมภาษณ์ — สร้าง Google Calendar event + Meet จริง (ถ้าตั้ง env แล้ว) ไม่งั้น fallback mock
     const iv = body.interview || {};
     if (iv.location === "Google Meet" && !iv.meet_url) {
-      const rand = id.slice(0, 3) + Math.abs(hashStr(id + (iv.date || ""))).toString(36).slice(0, 8);
-      iv.meet_url = `https://meet.google.com/${rand.slice(0, 3)}-${rand.slice(3, 7)}-${rand.slice(7, 10)}`;
-      iv.calendar_event_id = `mock_${id.slice(0, 8)}`;
-      iv.mock = true;
+      let real: { meetUrl: string | null; htmlLink: string | null; eventId: string | null } | null = null;
+      if (googleCalendarConfigured() && iv.date) {
+        const { data: ap } = await admin
+          .from("applications")
+          .select("full_name, email, applicant_type, interested_roles, portfolio_url, intro_video_url, hr_summary")
+          .eq("id", id)
+          .maybeSingle();
+        const ivIds = Array.isArray(iv.interviewers) ? iv.interviewers : [];
+        const { data: ivEmps } = ivIds.length
+          ? await admin.from("employees").select("email").in("id", ivIds)
+          : { data: [] as any[] };
+        const interviewerEmails = (ivEmps ?? []).map((e: any) => e.email).filter(Boolean);
+        const roles = (ap?.interested_roles ?? []).map((r: string) => ROLE_LABEL[r] ?? r).join(", ");
+        const startISO = `${iv.date}T${(iv.start || "10:00")}:00`;
+        const endISO = `${iv.date}T${(iv.end || addOneHour(iv.start || "10:00"))}:00`;
+        const summary = `สัมภาษณ์งาน YuenDeaw - ${ap?.full_name || ""}${roles ? ` - ${roles}` : ""}`;
+        const description = [
+          `ผู้สมัคร: ${ap?.full_name || "-"}`,
+          `ประเภท: ${ap?.applicant_type === "internship" ? "เด็กฝึกงาน" : "พนักงานประจำ"}`,
+          roles ? `สายงานที่สนใจ: ${roles}` : "",
+          ap?.portfolio_url ? `Portfolio: ${ap.portfolio_url}` : "",
+          ap?.intro_video_url ? `คลิปแนะนำตัว: ${ap.intro_video_url}` : "",
+          ap?.hr_summary ? `สรุปจาก HR: ${ap.hr_summary}` : "",
+          iv.notes_for_candidate ? `หมายเหตุ: ${iv.notes_for_candidate}` : "",
+        ].filter(Boolean).join("\n");
+        real = await createInterviewEvent({
+          summary,
+          description,
+          startISO,
+          endISO,
+          attendees: [ap?.email, ...interviewerEmails].filter(Boolean) as string[],
+        });
+      }
+      if (real?.meetUrl) {
+        iv.meet_url = real.meetUrl;
+        iv.calendar_event_id = real.eventId;
+        iv.calendar_link = real.htmlLink;
+        iv.mock = false;
+      } else {
+        const rand = id.slice(0, 3) + Math.abs(hashStr(id + (iv.date || ""))).toString(36).slice(0, 8);
+        iv.meet_url = `https://meet.google.com/${rand.slice(0, 3)}-${rand.slice(3, 7)}-${rand.slice(7, 10)}`;
+        iv.calendar_event_id = `mock_${id.slice(0, 8)}`;
+        iv.mock = true;
+      }
     }
     patch.interview = iv;
     patch.stage = "interview_scheduled";

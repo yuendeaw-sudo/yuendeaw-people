@@ -194,7 +194,7 @@ function InterviewModal({ app, employees, onClose, onDone }: { app: any; employe
   });
   const [interviewers, setInterviewers] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
-  const [meet, setMeet] = useState<string | null>(null);
+  const [result, setResult] = useState<{ url: string; mock: boolean } | null>(null);
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
 
   async function save() {
@@ -203,7 +203,7 @@ function InterviewModal({ app, employees, onClose, onDone }: { app: any; employe
     const r = await patch(app.id, { action: "interview", interview: { ...f, interviewers } });
     const j = await r.json().catch(() => ({}));
     setBusy(false);
-    if (j?.interview?.meet_url) setMeet(j.interview.meet_url);
+    if (j?.interview?.meet_url) setResult({ url: j.interview.meet_url, mock: !!j.interview.mock });
     else { onDone(); onClose(); }
   }
 
@@ -215,12 +215,16 @@ function InterviewModal({ app, employees, onClose, onDone }: { app: any; employe
           <h3 className="font-bold text-lg">นัดสัมภาษณ์</h3>
           <button onClick={onClose} className="text-muted hover:text-ink"><Icon name="X" className="size-5" /></button>
         </div>
-        {meet ? (
+        {result ? (
           <div className="space-y-3 text-center">
             <Icon name="CircleCheck" className="size-10 text-mint mx-auto" />
             <p className="font-medium">นัดสัมภาษณ์เรียบร้อย</p>
-            <a href={meet} target="_blank" rel="noreferrer" className="btn-brand inline-flex"><Icon name="Video" className="size-4" /> เปิด Google Meet</a>
-            <p className="text-[11px] text-amber">* ลิงก์ทดสอบ (mock) — จะสร้าง Calendar/Meet จริงเมื่อต่อ Google API</p>
+            <a href={result.url} target="_blank" rel="noreferrer" className="btn-brand inline-flex"><Icon name="Video" className="size-4" /> เปิด Google Meet</a>
+            {result.mock ? (
+              <p className="text-[11px] text-amber">* ลิงก์ทดสอบ (mock) — ตั้ง Google Service Account ใน Vercel เพื่อสร้าง Calendar/Meet จริง + ส่ง invite</p>
+            ) : (
+              <p className="text-[11px] text-mint">✓ สร้าง Google Calendar + ส่ง invite ให้ผู้สมัครและผู้สัมภาษณ์แล้ว</p>
+            )}
             <button onClick={() => { onDone(); onClose(); }} className="btn-outline w-full">เสร็จ</button>
           </div>
         ) : (
