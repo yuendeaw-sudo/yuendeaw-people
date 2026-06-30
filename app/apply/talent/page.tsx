@@ -36,30 +36,30 @@ export default function TalentApplyPage() {
 
 function Landing({ onPick }: { onPick: (t: "full_time" | "internship") => void }) {
   return (
-    <div>
-      <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight">
-        มาร่วมสร้างวัฒนธรรมคอนเทนต์กับยืนเดี่ยว
+    <div className="sm:py-6">
+      <h1 className="text-[26px] leading-snug sm:text-[40px] sm:leading-[1.15] font-extrabold tracking-tight text-balance">
+        มาร่วมสร้างวัฒนธรรมคอนเทนต์<wbr />
+        <span className="whitespace-nowrap">กับยืนเดี่ยว</span>
       </h1>
-      <p className="mt-4 text-lg text-muted leading-relaxed">
+      <p className="mt-5 text-base sm:text-lg text-muted leading-relaxed max-w-xl">
         เราเปิดรับคนที่อยากทำคอนเทนต์ โชว์ สแตนด์อัพ โปรดักชัน และระบบสร้างศิลปินตลกยุคใหม่
-        <br />
+      </p>
+      <p className="mt-3 text-base sm:text-lg text-muted leading-relaxed max-w-xl">
         ฝากโปรไฟล์ ผลงาน และคลิปแนะนำตัวไว้กับเราได้เลย เมื่อมีตำแหน่งหรือโปรเจกต์ที่เหมาะ ทีมเราจะติดต่อกลับ
       </p>
-      <div className="mt-5 rounded-2xl bg-brand-soft/60 p-4 text-[15px]">
-        ไม่ต้องเป็นคนสมบูรณ์แบบ — แต่เราอยากเห็น <b>ตัวตน วิธีคิด ผลงานจริง และความตั้งใจจริง</b>
-      </div>
-      <div className="mt-7 grid sm:grid-cols-2 gap-3">
-        <button onClick={() => onPick("full_time")} className="card p-5 text-left hover:shadow-pop transition">
-          <div className="text-2xl">💼</div>
-          <div className="font-bold mt-2">สมัครพนักงานประจำ</div>
-          <div className="text-sm text-muted mt-0.5">ร่วมทีมเต็มตัว สร้างคอนเทนต์/โชว์/โปรดักชัน</div>
-          <div className="text-gold text-sm font-semibold mt-3 flex items-center gap-1">เริ่มสมัคร <Icon name="ArrowRight" className="size-4" /></div>
+
+      <div className="mt-9 grid gap-4 sm:grid-cols-2">
+        <button onClick={() => onPick("full_time")} className="card p-6 text-left hover:shadow-pop hover:border-brand/40 transition">
+          <div className="text-3xl">💼</div>
+          <div className="font-bold text-lg mt-3">สมัครพนักงานประจำ</div>
+          <div className="text-sm text-muted mt-1 leading-relaxed">ร่วมทีมเต็มตัว สร้างคอนเทนต์ / โชว์ / โปรดักชัน</div>
+          <div className="text-gold text-sm font-semibold mt-4 flex items-center gap-1">เริ่มสมัคร <Icon name="ArrowRight" className="size-4" /></div>
         </button>
-        <button onClick={() => onPick("internship")} className="card p-5 text-left hover:shadow-pop transition">
-          <div className="text-2xl">🌱</div>
-          <div className="font-bold mt-2">สมัครเด็กฝึกงาน</div>
-          <div className="text-sm text-muted mt-0.5">มาเรียนรู้งานจริงกับทีมยืนเดี่ยว</div>
-          <div className="text-gold text-sm font-semibold mt-3 flex items-center gap-1">เริ่มสมัคร <Icon name="ArrowRight" className="size-4" /></div>
+        <button onClick={() => onPick("internship")} className="card p-6 text-left hover:shadow-pop hover:border-brand/40 transition">
+          <div className="text-3xl">🌱</div>
+          <div className="font-bold text-lg mt-3">สมัครเด็กฝึกงาน</div>
+          <div className="text-sm text-muted mt-1 leading-relaxed">มาเรียนรู้งานจริงกับทีมยืนเดี่ยว</div>
+          <div className="text-gold text-sm font-semibold mt-4 flex items-center gap-1">เริ่มสมัคร <Icon name="ArrowRight" className="size-4" /></div>
         </button>
       </div>
     </div>
