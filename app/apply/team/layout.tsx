@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     description: DESC,
     url: "/apply/team",
     locale: "th_TH",
-    images: [{ url: OG_IMAGE, width: 1080, height: 1080, alt: "สมัครร่วมทีม YuenDeaw" }],
+    images: [{ url: OG_IMAGE, width: 1254, height: 1254, alt: "สมัครร่วมทีม YuenDeaw" }],
   },
   twitter: {
     card: "summary_large_image",
