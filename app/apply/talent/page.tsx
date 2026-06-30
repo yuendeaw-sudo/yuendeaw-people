@@ -6,9 +6,8 @@ import {
   INTERESTED_ROLES,
   CURRENT_STATUS,
   WORK_TYPES,
-  CREATIVE_QUESTIONS,
-  ATTITUDE_QUESTIONS,
   SOCIAL_KEYS,
+  questionsFor,
 } from "@/lib/applications";
 
 type View = "landing" | "form" | "done";
@@ -94,8 +93,11 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
     intro_video_url: "",
     creative_answers: { q1: "", q2: "", q3: "" },
     attitude_answers: { q1: "", q2: "", q3: "" },
+    university: "", faculty: "", internship_months: "",
     consent: false,
   });
+  const isIntern = type === "internship";
+  const Q = questionsFor(type);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const set = (k: string, v: any) => setF((s: any) => ({ ...s, [k]: v }));
@@ -122,7 +124,8 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
         social_links: f.social_links,
         proud_works: f.proud_works.filter((p: any) => p.title.trim() || p.why.trim()),
         intro_video_url: f.intro_video_url,
-        creative_answers: f.creative_answers, attitude_answers: f.attitude_answers,
+        creative_answers: f.creative_answers, attitude_answers: isIntern ? {} : f.attitude_answers,
+        answers: isIntern ? { university: f.university, faculty: f.faculty, internship_months: f.internship_months } : {},
         consent_to_store_profile: f.consent,
       };
       const r = await fetch("/api/applications/submit", {
@@ -161,6 +164,17 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
           <T label="ค่าตอบแทนที่คาดหวัง" v={f.expected_compensation} on={(v) => set("expected_compensation", v)} />
         </div>
       </Section>
+
+      {/* การศึกษา (เฉพาะเด็กฝึกงาน) */}
+      {isIntern && (
+        <Section title="ข้อมูลการศึกษา / ฝึกงาน">
+          <div className="grid sm:grid-cols-2 gap-3">
+            <T label="มหาวิทยาลัย" v={f.university} on={(v) => set("university", v)} />
+            <T label="คณะ / สาขา" v={f.faculty} on={(v) => set("faculty", v)} />
+            <T label="ระยะเวลาฝึกงาน (เดือน)" type="number" v={f.internship_months} on={(v) => set("internship_months", v)} ph="เช่น 4" />
+          </div>
+        </Section>
+      )}
 
       {/* สายงานที่สนใจ */}
       <Section title="สายงานที่สนใจ" hint="เลือกได้หลายข้อ">
@@ -223,9 +237,9 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
         <T label="ลิงก์คลิปแนะนำตัว (YouTube / TikTok / Drive)" v={f.intro_video_url} on={(v) => set("intro_video_url", v)} ph="https://..." />
       </Section>
 
-      {/* คำถามครีเอทีฟ */}
-      <Section title="คำถามครีเอทีฟ">
-        {CREATIVE_QUESTIONS.map((q, i) => (
+      {/* คำถามหลัก (ครีเอทีฟ / สำหรับผู้ฝึกงาน) */}
+      <Section title={Q.primaryLabel}>
+        {Q.primary.map((q, i) => (
           <div key={i} className="mb-3">
             <label className="label">{i + 1}. {q}</label>
             <textarea className="input" rows={2} value={f.creative_answers[`q${i + 1}`]}
@@ -234,16 +248,18 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
         ))}
       </Section>
 
-      {/* คำถามทัศนคติ */}
-      <Section title="คำถามทัศนคติ">
-        {ATTITUDE_QUESTIONS.map((q, i) => (
-          <div key={i} className="mb-3">
-            <label className="label">{i + 1}. {q}</label>
-            <textarea className="input" rows={2} value={f.attitude_answers[`q${i + 1}`]}
-              onChange={(e) => set("attitude_answers", { ...f.attitude_answers, [`q${i + 1}`]: e.target.value })} />
-          </div>
-        ))}
-      </Section>
+      {/* คำถามทัศนคติ (เฉพาะพนักงานประจำ) */}
+      {Q.attitude.length > 0 && (
+        <Section title="คำถามทัศนคติ">
+          {Q.attitude.map((q, i) => (
+            <div key={i} className="mb-3">
+              <label className="label">{i + 1}. {q}</label>
+              <textarea className="input" rows={2} value={f.attitude_answers[`q${i + 1}`]}
+                onChange={(e) => set("attitude_answers", { ...f.attitude_answers, [`q${i + 1}`]: e.target.value })} />
+            </div>
+          ))}
+        </Section>
+      )}
 
       {/* consent */}
       <label className="flex items-start gap-3 rounded-xl border border-sand p-4 cursor-pointer">

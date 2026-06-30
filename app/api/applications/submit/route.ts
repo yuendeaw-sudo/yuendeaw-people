@@ -38,6 +38,7 @@ export async function POST(req: Request) {
     intro_video_url: b.intro_video_url || null,
     creative_answers: b.creative_answers && typeof b.creative_answers === "object" ? b.creative_answers : {},
     attitude_answers: b.attitude_answers && typeof b.attitude_answers === "object" ? b.attitude_answers : {},
+    answers: b.answers && typeof b.answers === "object" ? b.answers : {},
     consent_to_store_profile: true,
     stage: "new",
   };

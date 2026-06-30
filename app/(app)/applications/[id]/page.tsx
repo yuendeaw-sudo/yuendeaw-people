@@ -9,7 +9,7 @@ import { Icon } from "@/components/Icon";
 import { formatThaiDate } from "@/lib/utils";
 import {
   statusOf, ROLE_LABEL, HR_RECOMMENDATION, HR_SCORE_FIELDS,
-  CREATIVE_QUESTIONS, ATTITUDE_QUESTIONS, SOCIAL_KEYS,
+  SOCIAL_KEYS, questionsFor,
 } from "@/lib/applications";
 import { ApplicationActions } from "@/components/applications/ApplicationActions";
 
@@ -45,6 +45,8 @@ export default async function ApplicationDetail({ params }: { params: Promise<{ 
 
   const st = statusOf(a.stage);
   const rec = HR_RECOMMENDATION.find((r) => r.key === a.hr_recommendation);
+  const Q = questionsFor(a.applicant_type);
+  const edu = a.answers ?? {};
   const embed = ytEmbed(a.intro_video_url);
   const social = a.social_links ?? {};
   const portfolioLinks = a.portfolio_links ?? [];
@@ -82,6 +84,14 @@ export default async function ApplicationDetail({ params }: { params: Promise<{ 
                   {a.email && <a href={`mailto:${a.email}`} className="text-gold hover:underline">✉️ {a.email}</a>}
                   {a.line_id && <span className="text-muted">LINE: {a.line_id}</span>}
                 </div>
+                {a.applicant_type === "internship" && (edu.university || edu.faculty || edu.internship_months) && (
+                  <div className="mt-2 text-xs text-muted flex flex-wrap gap-x-3 gap-y-0.5">
+                    <Icon name="GraduationCap" className="size-3.5 text-grape" />
+                    {edu.university && <span>{edu.university}</span>}
+                    {edu.faculty && <span>· {edu.faculty}</span>}
+                    {edu.internship_months && <span>· ฝึก {edu.internship_months} เดือน</span>}
+                  </div>
+                )}
               </div>
             </div>
           </Card>
@@ -124,12 +134,12 @@ export default async function ApplicationDetail({ params }: { params: Promise<{ 
 
           {/* answers */}
           <Card>
-            <h3 className="font-bold mb-3">คำถามครีเอทีฟ & ทัศนคติ</h3>
+            <h3 className="font-bold mb-3">{Q.primaryLabel}{Q.attitude.length > 0 ? " & ทัศนคติ" : ""}</h3>
             <div className="space-y-3">
-              {CREATIVE_QUESTIONS.map((q, i) => (a.creative_answers?.[`q${i + 1}`]) && (
+              {Q.primary.map((q, i) => (a.creative_answers?.[`q${i + 1}`]) && (
                 <QA key={`c${i}`} q={q} ans={a.creative_answers[`q${i + 1}`]} />
               ))}
-              {ATTITUDE_QUESTIONS.map((q, i) => (a.attitude_answers?.[`q${i + 1}`]) && (
+              {Q.attitude.map((q, i) => (a.attitude_answers?.[`q${i + 1}`]) && (
                 <QA key={`a${i}`} q={q} ans={a.attitude_answers[`q${i + 1}`]} />
               ))}
             </div>

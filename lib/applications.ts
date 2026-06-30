@@ -77,6 +77,20 @@ export const ATTITUDE_QUESTIONS = [
   "คุณคิดว่าคนทำคอนเทนต์ที่ดี ต้องมีนิสัยอะไร",
 ];
 
+// คำถามเฉพาะเด็กฝึกงาน (เก็บใน creative_answers q1-q3)
+export const INTERN_QUESTIONS = [
+  "ทำไมถึงสนใจสมัครฝึกงานกับยืนเดี่ยว?",
+  "ตำแหน่งที่คุณสมัคร คุณคิดว่าอะไรคือ 3 สิ่งสำคัญที่สุดที่คนทำตำแหน่งนี้ต้องมี?",
+  "ช่วงฝึกงานนี้ คุณอยากเรียนรู้หรือได้อะไรกลับไปมากที่สุด?",
+];
+
+// ฟิลด์/คำถามตามประเภทผู้สมัคร
+export function questionsFor(type: string) {
+  return type === "internship"
+    ? { primary: INTERN_QUESTIONS, attitude: [] as string[], primaryLabel: "คำถามสำหรับผู้ฝึกงาน" }
+    : { primary: CREATIVE_QUESTIONS, attitude: ATTITUDE_QUESTIONS, primaryLabel: "คำถามครีเอทีฟ" };
+}
+
 export const SOCIAL_KEYS = [
   { key: "tiktok", label: "TikTok" },
   { key: "youtube", label: "YouTube" },
