@@ -176,7 +176,7 @@ export default async function ApplicationDetail({ params }: { params: Promise<{ 
               <a href={a.interview.meet_url} target="_blank" rel="noreferrer" className="btn-outline mt-2 inline-flex"><Icon name="Video" className="size-4" /> Google Meet</a>
             </Card>
           )}
-          <ApplicationActions app={a} canEdit={canEdit} isOwner={ctx.isOwner} employees={employees} teams={teamOpts} />
+          <ApplicationActions app={a} canEdit={canEdit} isOwner={ctx.isOwner} canConvert={ctx.isOwner || (canEdit && can(ctx, "people", "create"))} employees={employees} teams={teamOpts} />
           {canEdit && logs.length > 0 && (
             <Card>
               <h3 className="font-bold mb-3 text-sm">ประวัติการดำเนินการ</h3>

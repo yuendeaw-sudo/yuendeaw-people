@@ -21,7 +21,7 @@ export const getAccessContext = cache(async (): Promise<AccessContext | null> =>
   // app_users + employee are independent (both keyed on user.id) → fetch together
   const [{ data: appUser }, { data: employee }] = await Promise.all([
     supabase.from("app_users").select("is_owner, full_name, email").eq("id", user.id).maybeSingle(),
-    supabase.from("employees").select("id").eq("user_id", user.id).maybeSingle(),
+    supabase.from("employees").select("id, status, employment_types(key)").eq("user_id", user.id).maybeSingle(),
   ]);
 
   const isOwner = appUser?.is_owner ?? false;
@@ -53,6 +53,13 @@ export const getAccessContext = cache(async (): Promise<AccessContext | null> =>
       if (o.allow) perms.add(key);
       else perms.delete(key);
     }
+  }
+
+  // พนักงานประจำที่ผ่านทดลองงานแล้ว (full_time + active) → เข้าถึงใบสมัคร + ให้คะแนน + เชิญสัมภาษณ์ได้
+  const empKey = (employee as any)?.employment_types?.key;
+  if (empKey === "full_time" && (employee as any)?.status === "active") {
+    perms.add("applications:view");
+    perms.add("applications:edit");
   }
 
   return {

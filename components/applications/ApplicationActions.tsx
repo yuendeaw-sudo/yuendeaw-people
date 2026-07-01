@@ -19,12 +19,14 @@ export function ApplicationActions({
   app,
   canEdit,
   isOwner,
+  canConvert = false,
   employees,
   teams,
 }: {
   app: any;
   canEdit: boolean;
   isOwner: boolean;
+  canConvert?: boolean;
   employees: Opt[];
   teams: Opt[];
 }) {
@@ -33,15 +35,16 @@ export function ApplicationActions({
 
   return (
     <div className="space-y-4">
-      {canEdit && <HrPanel app={app} onDone={refresh} />}
+      {canEdit && <HrPanel app={app} employees={employees} onDone={refresh} />}
       {isOwner && <OwnerPanel app={app} employees={employees} onDone={refresh} />}
-      {(isOwner || canEdit) && <ConvertPanel app={app} employees={employees} teams={teams} onDone={refresh} />}
+      {(isOwner || canConvert) && <ConvertPanel app={app} employees={employees} teams={teams} onDone={refresh} />}
     </div>
   );
 }
 
 /* ---------------- HR Screening ---------------- */
-function HrPanel({ app, onDone }: { app: any; onDone: () => void }) {
+function HrPanel({ app, employees, onDone }: { app: any; employees: Opt[]; onDone: () => void }) {
+  const [iv, setIv] = useState(false);
   const [score, setScore] = useState<Record<string, number>>(app.hr_score ?? {});
   const [rec, setRec] = useState(app.hr_recommendation ?? "");
   const [summary, setSummary] = useState(app.hr_summary ?? "");
@@ -137,10 +140,12 @@ function HrPanel({ app, onDone }: { app: any; onDone: () => void }) {
 
       <div className="flex flex-wrap gap-2 mt-4">
         <button onClick={save} disabled={!!busy} className="btn-brand">{busy === "save" ? "…" : "บันทึกคะแนน/แท็ก"}</button>
-        <button onClick={() => setStage("owner_review", "owner")} disabled={!!busy} className="btn bg-mint text-white px-3">ส่งเข้า Owner Review</button>
+        <button onClick={() => setIv(true)} disabled={!!busy} className="btn bg-mint text-white px-3"><Icon name="CalendarPlus" className="size-4" /> เชิญสัมภาษณ์</button>
+        <button onClick={() => setStage("owner_review", "owner")} disabled={!!busy} className="btn-outline">ส่งเข้า Owner Review</button>
         <button onClick={() => setStage("talent_pool", "pool")} disabled={!!busy} className="btn-outline">เก็บ Talent Pool</button>
         <button onClick={() => setStage("rejected", "rej")} disabled={!!busy} className="btn-outline !text-rose !border-rose/40">ไม่ผ่าน</button>
       </div>
+      {iv && <InterviewModal app={app} employees={employees} onClose={() => setIv(false)} onDone={onDone} />}
     </div>
   );
 }
