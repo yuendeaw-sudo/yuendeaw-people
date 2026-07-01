@@ -70,9 +70,9 @@ export const HR_RECOMMENDATION = [
 ];
 
 export const DEFAULT_TAGS = [
-  "strong_portfolio", "good_energy", "funny", "good_storytelling", "good_editor",
-  "social_native", "good_visual_sense", "ai_skill", "production_mindset", "organized",
-  "needs_training", "urgent_candidate", "freelance_potential", "intern_potential", "owner_favorite",
+  "พอร์ตแข็ง", "พลังงานดี", "ตลก/มีมุก", "เล่าเรื่องเก่ง", "ตัดต่อเก่ง",
+  "สายโซเชียล", "เซนส์ภาพดี", "ใช้ AI เป็น", "หัวโปรดักชัน", "เป็นระบบ",
+  "ต้องเทรนเพิ่ม", "ควรรีบรับ", "เหมาะฟรีแลนซ์", "เหมาะฝึกงาน", "เจ้าของถูกใจ",
 ];
 
 export const CREATIVE_QUESTIONS = [
