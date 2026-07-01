@@ -63,7 +63,7 @@ export async function diagnose(): Promise<{ configured: boolean; tokenOk: boolea
   if (!googleCalendarConfigured()) return { configured: false, tokenOk: false, error: "ยังไม่ได้ตั้ง env (GOOGLE_SA_EMAIL / GOOGLE_SA_PRIVATE_KEY / GOOGLE_CALENDAR_IMPERSONATE)" };
   const email = process.env.GOOGLE_SA_EMAIL!;
   const sub = process.env.GOOGLE_CALENDAR_IMPERSONATE!;
-  let pk = process.env.GOOGLE_SA_PRIVATE_KEY!.replace(/\\n/g, "\n");
+  const pk = process.env.GOOGLE_SA_PRIVATE_KEY!.replace(/\\n/g, "\n");
   const now = Math.floor(Date.now() / 1000);
   const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const claims = b64url(JSON.stringify({ iss: email, scope: "https://www.googleapis.com/auth/calendar.events", aud: "https://oauth2.googleapis.com/token", sub, iat: now, exp: now + 3600 }));
