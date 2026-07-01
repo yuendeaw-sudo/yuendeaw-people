@@ -58,6 +58,38 @@ async function getAccessToken(): Promise<string | null> {
   }
 }
 
+// ตรวจสอบการตั้งค่า: ลองขอ access token (จะ fail ถ้า delegation/scope/คีย์ไม่ถูก) — ไม่สร้าง event จริง
+export async function diagnose(): Promise<{ configured: boolean; tokenOk: boolean; error?: string }> {
+  if (!googleCalendarConfigured()) return { configured: false, tokenOk: false, error: "ยังไม่ได้ตั้ง env (GOOGLE_SA_EMAIL / GOOGLE_SA_PRIVATE_KEY / GOOGLE_CALENDAR_IMPERSONATE)" };
+  const email = process.env.GOOGLE_SA_EMAIL!;
+  const sub = process.env.GOOGLE_CALENDAR_IMPERSONATE!;
+  let pk = process.env.GOOGLE_SA_PRIVATE_KEY!.replace(/\\n/g, "\n");
+  const now = Math.floor(Date.now() / 1000);
+  const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const claims = b64url(JSON.stringify({ iss: email, scope: "https://www.googleapis.com/auth/calendar.events", aud: "https://oauth2.googleapis.com/token", sub, iat: now, exp: now + 3600 }));
+  const signingInput = `${header}.${claims}`;
+  let signature: string;
+  try {
+    const signer = crypto.createSign("RSA-SHA256");
+    signer.update(signingInput);
+    signature = b64url(signer.sign(pk));
+  } catch (e: any) {
+    return { configured: true, tokenOk: false, error: `เซ็น JWT ไม่ได้ (private key ผิดรูปแบบ?): ${e?.message || e}` };
+  }
+  try {
+    const res = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: `${signingInput}.${signature}` }),
+    });
+    const txt = await res.text();
+    if (!res.ok) return { configured: true, tokenOk: false, error: `Google token ${res.status}: ${txt.slice(0, 300)}` };
+    return { configured: true, tokenOk: true };
+  } catch (e: any) {
+    return { configured: true, tokenOk: false, error: `เรียก token endpoint ไม่ได้: ${e?.message || e}` };
+  }
+}
+
 export async function createInterviewEvent(opts: {
   summary: string;
   description: string;
