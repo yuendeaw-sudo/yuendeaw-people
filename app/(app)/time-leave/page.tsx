@@ -11,7 +11,7 @@ import { ApprovalRow } from "@/components/leave/ApprovalRow";
 import { LeaveBalances } from "@/components/leave/LeaveBalances";
 import { WorkArrangement } from "@/components/leave/WorkArrangement";
 import { OvertimeCard } from "@/components/leave/OvertimeCard";
-import { OTApprovals } from "@/components/leave/OTApprovals";
+import { TeamOTOverview } from "@/components/leave/TeamOTOverview";
 import { CompDayOffCard } from "@/components/leave/CompDayOffCard";
 import { CompDayOffGrant } from "@/components/leave/CompDayOffGrant";
 import { LeavePolicyGuide } from "@/components/leave/LeavePolicyGuide";
@@ -165,8 +165,8 @@ export default async function TimeLeavePage() {
           ในฐานะเจ้าของ คุณลาได้ตามต้องการ — หน้านี้จึงเน้นดูแลการลา/OT ของทีม
         </p>
 
-        {/* OT รออนุมัติ */}
-        <OTApprovals />
+        {/* ภาพรวม OT ของทีม */}
+        <TeamOTOverview />
 
         {/* การลารออนุมัติ */}
         <Card>
@@ -256,8 +256,8 @@ export default async function TimeLeavePage() {
       {/* วันหยุดสะสมจากการทุ่มเท (โชว์เมื่อมี) */}
       {ctx.employeeId && <CompDayOffCard employeeId={ctx.employeeId} />}
 
-      {/* OT รออนุมัติ (ผู้อนุมัติเห็น) */}
-      {(ctx.isOwner || can(ctx, "time_leave", "approve")) && <OTApprovals />}
+      {/* ภาพรวม OT ของทีม (ผู้อนุมัติเห็น) */}
+      {(ctx.isOwner || can(ctx, "time_leave", "approve")) && <TeamOTOverview />}
 
       {/* approvals */}
       {canApprove && (
