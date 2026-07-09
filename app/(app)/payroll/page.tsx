@@ -49,6 +49,7 @@ export default async function PayrollPage() {
                   <th className="px-2 py-2 font-medium">พนักงาน</th>
                   <th className="px-2 py-2 font-medium">ประเภท</th>
                   <th className="px-2 py-2 font-medium text-right">เงินเดือน/เบี้ย</th>
+                  <th className="px-2 py-2 font-medium text-right">OT</th>
                   <th className="px-2 py-2 font-medium text-right">โบนัส</th>
                   <th className="px-2 py-2 font-medium text-right">สวัสดิการ</th>
                   <th className="px-2 py-2 font-medium text-right">ประกันสังคม</th>
@@ -70,6 +71,7 @@ export default async function PayrollPage() {
                       </td>
                       <td className="px-2 py-3 text-muted">{r.type ?? "—"}</td>
                       <td className="px-2 py-3 text-right">{r.pay ? formatTHB(r.pay) : "—"}</td>
+                      <td className="px-2 py-3 text-right">{r.ot ? <span className="text-mint">+{formatTHB(r.ot)}</span> : "—"}</td>
                       <td className="px-2 py-3 text-right">{r.bonus ? formatTHB(r.bonus) : "—"}</td>
                       <td className="px-2 py-3 text-right">{r.welfare ? formatTHB(r.welfare) : "—"}</td>
                       <td className="px-2 py-3 text-right">
@@ -85,14 +87,14 @@ export default async function PayrollPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-sand">
-                  <td colSpan={7} className="px-2 py-3 font-semibold text-right">รวมจ่ายสุทธิ</td>
+                  <td colSpan={8} className="px-2 py-3 font-semibold text-right">รวมจ่ายสุทธิ</td>
                   <td className="px-2 py-3 text-right font-extrabold text-base">{formatTHB(total)}</td>
                 </tr>
               </tfoot>
             </table>
           </div>
           <p className="text-xs text-muted mt-3">
-            <Icon name="Info" className="size-3.5 inline" /> เงินเดือน/เบี้ย = เงินเดือนล่าสุด + เบี้ยฝึก (เด็กฝึกมีแค่เบี้ย) · หักประกันสังคม 5% (ฐาน 1,650–17,500) สำหรับผู้มีสิทธิ์ · หัก ณ ที่จ่าย 3% สำหรับคนไม่มีประกันสังคมและเด็กฝึก — เป็นยอดประมาณการ ตรวจกับฝ่ายการเงินก่อนจ่ายจริง
+            <Icon name="Info" className="size-3.5 inline" /> เงินเดือน/เบี้ย = เงินเดือนล่าสุด + เบี้ยฝึก (เด็กฝึกมีแค่เบี้ย) · OT = เบิกที่อนุมัติแล้วในเดือนนั้น · หักประกันสังคม 5% (ฐาน 1,650–17,500) สำหรับผู้มีสิทธิ์ · หัก ณ ที่จ่าย 3% สำหรับคนไม่มีประกันสังคมและเด็กฝึก — เป็นยอดประมาณการ ตรวจกับฝ่ายการเงินก่อนจ่ายจริง
           </p>
         </Card>
       ) : (

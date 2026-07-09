@@ -21,6 +21,7 @@ export type PayrollRow = {
   type: string | null;
   status: string;
   pay: number; // เงินเดือน + เบี้ยฝึก (รวมในช่องเดียว)
+  ot: number; // OT ที่อนุมัติแล้วในเดือนนั้น
   bonus: number;
   welfare: number;
   sso: number; // หักประกันสังคม
@@ -38,7 +39,7 @@ export async function computePayroll(supabase: any, year: number, month: number)
   const end = `${year}-${mm}-${String(lastDay).padStart(2, "0")}`;
   const todayYmd = new Date().toISOString().slice(0, 10);
 
-  const [{ data: emps }, { data: comp }, { data: bonus }, { data: welfare }, { data: internLogs }] = await Promise.all([
+  const [{ data: emps }, { data: comp }, { data: bonus }, { data: welfare }, { data: internLogs }, { data: ot }] = await Promise.all([
     supabase
       .from("employees")
       .select(
@@ -50,6 +51,8 @@ export async function computePayroll(supabase: any, year: number, month: number)
     supabase.from("bonus_requests").select("employee_id, amount, unit, status, created_at").in("status", ["approved", "paid"]),
     supabase.from("welfare_payments").select("employee_id, amount, paid_on"),
     supabase.from("intern_logs").select("intern_id, log_date").gte("log_date", start).lte("log_date", end),
+    // OT ที่อนุมัติแล้ว วันที่ทำงานอยู่ในเดือนนี้
+    supabase.from("ot_requests").select("employee_id, amount, work_date, status").eq("status", "approved").gte("work_date", start).lte("work_date", end),
   ]);
 
   const latestComp: Record<string, number> = {};
@@ -66,6 +69,7 @@ export async function computePayroll(supabase: any, year: number, month: number)
   };
   const bonusM = sumBy(bonus ?? [], (b) => (b.unit ?? "baht") === "baht" && b.created_at >= start && b.created_at <= `${end}T23:59:59`);
   const welfareM = sumBy(welfare ?? [], (w) => w.paid_on && w.paid_on >= start && w.paid_on <= end);
+  const otM = sumBy(ot ?? [], () => true); // filter ทำใน query แล้ว
 
   const rows: PayrollRow[] = (emps ?? []).map((e: any) => {
     const isIntern = e.employment_types?.key === "intern";
@@ -82,6 +86,7 @@ export async function computePayroll(supabase: any, year: number, month: number)
 
     const bonusV = bonusM[e.id] ?? 0;
     const welfareV = welfareM[e.id] ?? 0;
+    const otV = otM[e.id] ?? 0;
     return {
       employeeId: e.id,
       code: e.employee_code,
@@ -89,11 +94,12 @@ export async function computePayroll(supabase: any, year: number, month: number)
       type: e.employment_types?.name ?? null,
       status: e.status,
       pay,
+      ot: otV,
       bonus: bonusV,
       welfare: welfareV,
       sso,
       wht,
-      net: pay + bonusV + welfareV - sso - wht,
+      net: pay + otV + bonusV + welfareV - sso - wht,
       bankName: e.bank_name ?? null,
       bankAccount: e.bank_account ?? null,
       startDate: e.start_date ?? null,
