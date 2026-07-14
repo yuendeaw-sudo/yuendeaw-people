@@ -1,8 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { emailShell, sendEmail, emailRow } from "@/lib/email";
+import { ROLE_LABEL } from "@/lib/applications";
 
 export const runtime = "nodejs";
-
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://people.yuendeaw.com";
 
 // รับใบสมัครจากหน้า public (ไม่ต้องล็อกอิน) → status = new + อีเมลยืนยัน
 export async function POST(req: Request) {
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
   });
 
   // แจ้งเตือนเจ้าของ (best-effort)
-  const { data: owners } = await admin.from("app_users").select("id").eq("is_owner", true);
+  const { data: owners } = await admin.from("app_users").select("id, email").eq("is_owner", true);
   if (owners?.length) {
     await admin.from("notifications").insert(
       owners.map((o: any) => ({
@@ -71,32 +71,32 @@ export async function POST(req: Request) {
     );
   }
 
-  // อีเมลยืนยันผู้สมัคร (ส่งเมื่อมี Resend)
-  const key = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM;
-  if (key && from) {
-    try {
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from,
-          to: email,
-          subject: "ได้รับใบสมัครของคุณแล้ว — YuenDeaw Talent Pool 💛",
-          html: `<div style="font-family:sans-serif;line-height:1.8;color:#1a1a1a;max-width:520px">
-            <h2>สวัสดี ${b.nickname || fullName} 🎉</h2>
-            <p>เราได้รับใบสมัครของคุณแล้ว ทีมยืนเดี่ยวจะเก็บโปรไฟล์นี้ไว้ใน <b>People OS Talent Pool</b></p>
-            <p>เมื่อมีตำแหน่งหรือโปรเจกต์ที่เหมาะ เราจะติดต่อกลับ</p>
-            <p style="color:#8A6800">ขอบคุณที่ส่งตัวตน ผลงาน และความตั้งใจของคุณมาให้เราเห็น 💛</p>
-            <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
-            <p style="font-size:13px;color:#888">YuenDeaw · <a href="${SITE}">${SITE}</a></p>
-          </div>`,
-        }),
-      });
-    } catch {
-      /* email best-effort */
-    }
-  }
+  // อีเมลยืนยันรับใบสมัคร (ส่งเมื่อตั้ง Resend)
+  const roles = (Array.isArray(b.interested_roles) ? b.interested_roles : [])
+    .map((r: string) => ROLE_LABEL[r] ?? r)
+    .join(", ");
+  const dataRows = [
+    emailRow("ชื่อ-นามสกุล", `${fullName}${b.nickname ? ` (${b.nickname})` : ""}`),
+    emailRow("ประเภท", applicantType === "internship" ? "เด็กฝึกงาน" : "พนักงานประจำ"),
+    roles ? emailRow("สายงานที่สนใจ", roles) : "",
+    b.age ? emailRow("อายุ", `${b.age} ปี`) : "",
+    applicantType !== "internship" && b.expected_compensation ? emailRow("ค่าตอบแทนที่คาดหวัง", String(b.expected_compensation)) : "",
+  ].filter(Boolean).join("");
+
+  const ownerEmails = (owners ?? []).map((o: any) => o.email).filter(Boolean);
+  await sendEmail({
+    to: email,
+    replyTo: ownerEmails.length ? ownerEmails : undefined,
+    subject: "ขอบคุณที่ส่งใบสมัครมาที่ ยืนเดี่ยว 💛",
+    html: emailShell(`
+      <h2 style="margin:0 0 10px">ขอบคุณที่ตั้งใจส่งใบสมัครมาที่ บริษัท ยืนเดี่ยว จำกัด 💛</h2>
+      <p><b>YuenDeaw People</b> เป็นองค์กรขนาดเล็ก ที่เชื่อว่าการได้ทำงานกับ “คนที่ใช่” เป็นส่วนหนึ่งของการพัฒนาชีวิตให้ก้าวหน้า และสมดุลไปกับเรื่องอื่น ๆ — เราจึงขอบคุณมากที่คุณสนใจส่งใบสมัครเข้ามาหาเรา</p>
+      <p>ระบบได้บันทึกข้อมูลของคุณเรียบร้อยแล้ว:</p>
+      <table style="font-size:15px;margin:8px 0 16px">${dataRows}</table>
+      <p>หากทางบริษัทมีตำแหน่งงานตรงกับที่คุณระบุไว้ <b>เราจะติดต่อกลับเพื่อนัดสัมภาษณ์</b></p>
+      <p style="color:#8A6800">ขอบคุณที่แบ่งปันตัวตน ผลงาน และความตั้งใจของคุณมาให้เราเห็นนะครับ 💛</p>
+    `),
+  });
 
   return Response.json({ ok: true });
 }

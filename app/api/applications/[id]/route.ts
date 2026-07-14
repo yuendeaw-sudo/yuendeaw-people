@@ -4,100 +4,78 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ROLE_LABEL } from "@/lib/applications";
 import { googleCalendarConfigured, createInterviewEvent, addOneHour } from "@/lib/google-calendar";
 import { formatThaiDate } from "@/lib/utils";
+import { emailShell, emailButton, emailRow, sendEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
-// อีเมลยืนยันนัดสัมภาษณ์ถึงผู้สมัคร (best-effort — ส่งเมื่อตั้ง Resend)
-async function sendInterviewEmail(ap: any, iv: any) {
-  const key = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM;
-  if (!key || !from || !ap?.email) return;
-  const loc =
-    iv.location === "Google Meet" ? "ออนไลน์ (Google Meet)" :
-    iv.location === "On-site" ? "ที่ออฟฟิศ YuenDeaw" :
-    iv.location === "Phone" ? "ทางโทรศัพท์" : (iv.location || "-");
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://people.yuendeaw.com";
+
+function locLabel(v: string) {
+  return v === "Google Meet" ? "ออนไลน์ (Google Meet)"
+    : v === "On-site" ? "ที่ออฟฟิศ YuenDeaw"
+    : v === "Phone" ? "ทางโทรศัพท์" : (v || "-");
+}
+function ivRows(iv: any) {
   const timeStr = [iv.start, iv.end].filter(Boolean).join(" - ");
-  const row = (l: string, v: string) => `<tr><td style="padding:5px 14px 5px 0;color:#888;white-space:nowrap">${l}</td><td><b>${v}</b></td></tr>`;
-  const rows = [
-    row("ประเภท", iv.type || "สัมภาษณ์งาน"),
-    iv.date ? row("วันที่", formatThaiDate(iv.date)) : "",
-    timeStr ? row("เวลา", `${timeStr} น.`) : "",
-    row("รูปแบบ", loc),
+  return [
+    emailRow("รอบสัมภาษณ์", iv.type || "สัมภาษณ์งาน"),
+    iv.date ? emailRow("วันที่", formatThaiDate(iv.date)) : "",
+    timeStr ? emailRow("เวลา", `${timeStr} น.`) : "",
+    emailRow("รูปแบบ", locLabel(iv.location)),
   ].filter(Boolean).join("");
-  const meetBtn = iv.meet_url
-    ? `<p style="margin:16px 0"><a href="${iv.meet_url}" style="display:inline-block;background:#F7BE00;color:#1a1a1a;padding:11px 20px;border-radius:12px;text-decoration:none;font-weight:bold">🎥 เข้าห้อง Google Meet</a></p>`
-    : "";
-  const notes = iv.notes_for_candidate ? `<p style="color:#555">📝 ${iv.notes_for_candidate}</p>` : "";
-  const name = ap.nickname || ap.full_name || "";
-  try {
-    await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from,
-        to: ap.email,
-        subject: "นัดสัมภาษณ์กับ YuenDeaw 🎤",
-        html: `<div style="font-family:sans-serif;line-height:1.8;color:#1a1a1a;max-width:520px">
-          <h2>สวัสดี ${name} 🎉</h2>
-          <p>ทีมยืนเดี่ยวได้นัดสัมภาษณ์คุณแล้ว รายละเอียดตามนี้:</p>
-          <table style="font-size:15px;margin:8px 0">${rows}</table>
-          ${meetBtn}
-          ${notes}
-          <p style="color:#8A6800">อีกไม่นานเจอกันนะครับ 💛</p>
-          <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
-          <p style="font-size:13px;color:#888">YuenDeaw · People OS</p>
-        </div>`,
-      }),
-    });
-  } catch {
-    /* best-effort */
-  }
 }
 
-// อีเมลถึงทีม (owner + ผู้สัมภาษณ์ที่ถูก tag) — พร้อมข้อมูลผู้สมัคร + ปุ่มเปิดใบสมัคร
-async function sendInterviewTeamEmail(emails: string[], ap: any, iv: any, appId: string) {
-  const key = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM;
-  const to = [...new Set(emails.filter(Boolean))];
-  if (!key || !from || to.length === 0) return;
-  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://people.yuendeaw.com";
-  const loc =
-    iv.location === "Google Meet" ? "ออนไลน์ (Google Meet)" :
-    iv.location === "On-site" ? "ที่ออฟฟิศ YuenDeaw" :
-    iv.location === "Phone" ? "ทางโทรศัพท์" : (iv.location || "-");
-  const timeStr = [iv.start, iv.end].filter(Boolean).join(" - ");
-  const row = (l: string, v: string) => `<tr><td style="padding:5px 14px 5px 0;color:#888;white-space:nowrap">${l}</td><td><b>${v}</b></td></tr>`;
+// Template 2 — ถึงผู้สมัคร (นัดสัมภาษณ์)
+async function sendInterviewEmail(ap: any, iv: any, replyTo?: string[]) {
+  if (!ap?.email) return;
+  const name = ap.nickname || ap.full_name || "";
+  const meetBtn = iv.meet_url ? `<p style="margin:16px 0">${emailButton(iv.meet_url, "🎥 เข้าห้อง Google Meet", true)}</p>` : "";
+  const notes = iv.notes_for_candidate ? `<p style="color:#555">📝 ${iv.notes_for_candidate}</p>` : "";
+  await sendEmail({
+    to: ap.email,
+    replyTo: replyTo && replyTo.length ? replyTo : undefined,
+    subject: "อยากชวนคุณมาสัมภาษณ์กับ ยืนเดี่ยว 🎤",
+    html: emailShell(`
+      <h2 style="margin:0 0 10px">สวัสดี ${name} 🎤</h2>
+      <p>จากประวัติและผลงานที่คุณนำเสนอ ทีมยืนเดี่ยว <b>เห็น potential ในตัวคุณเป็นอย่างมาก</b> และอยากชวนคุณมาสัมภาษณ์ เพื่อนำเสนอ portfolio ของคุณกับทีมงานของเรา</p>
+      <table style="font-size:15px;margin:8px 0 4px">${ivRows(iv)}</table>
+      ${meetBtn}
+      ${notes}
+      <p><b>YuenDeaw People</b> เป็นองค์กรขนาดเล็ก ที่เชื่อว่าการได้ทำงานกับ “คนที่ใช่” เป็นส่วนหนึ่งของการพัฒนาชีวิตให้ก้าวหน้าและสมดุลไปกับเรื่องอื่น ๆ การคัดเลือกของเรายึดหลัก <b>“ความพึงพอใจร่วมกัน”</b> — คุณเองก็มีสิทธิ์เลือกที่จะเข้าสัมภาษณ์ และเลือกว่าจะร่วมงานกับเราหรือไม่ เช่นเดียวกับที่เราเลือกคุณ</p>
+      <p style="background:#FFF7DB;border-radius:10px;padding:12px 14px"><b>🙏 รบกวนตอบกลับอีเมลฉบับนี้ เพื่อยืนยันการเข้าสัมภาษณ์</b></p>
+      <p style="color:#8A6800">อีกไม่นานเจอกันนะครับ 💛</p>
+    `),
+  });
+}
+
+// Template 3 — ถึงทีม (owner + ผู้สัมภาษณ์) พร้อมโปรไฟล์ผู้สมัคร + resume/portfolio
+async function sendInterviewTeamEmail(emails: string[], ap: any, iv: any, appId: string, roleText: string) {
+  const meetBtn = iv.meet_url ? emailButton(iv.meet_url, "🎥 Google Meet", true) : "";
+  const resumeBtn = ap?.resume_url ? emailButton(ap.resume_url, "📄 Resume") : "";
+  const portBtn = ap?.portfolio_url ? emailButton(ap.portfolio_url, "🎨 Portfolio") : "";
+  const videoBtn = ap?.intro_video_url ? emailButton(ap.intro_video_url, "🎬 คลิปแนะนำตัว") : "";
+  const appBtn = emailButton(`${SITE}/applications/${appId}`, "👤 เปิดโปรไฟล์เต็ม");
+  const contact = [ap?.email, ap?.phone].filter(Boolean).join(" · ");
   const rows = [
-    row("ผู้สมัคร", `${ap?.full_name || "-"}${ap?.nickname ? ` (${ap.nickname})` : ""}`),
-    row("ประเภท", ap?.applicant_type === "internship" ? "เด็กฝึกงาน" : "พนักงานประจำ"),
-    row("รอบ", iv.type || "สัมภาษณ์"),
-    iv.date ? row("วันที่", formatThaiDate(iv.date)) : "",
-    timeStr ? row("เวลา", `${timeStr} น.`) : "",
-    row("รูปแบบ", loc),
+    emailRow("ผู้สมัคร", `${ap?.full_name || "-"}${ap?.nickname ? ` (${ap.nickname})` : ""}`),
+    emailRow("ประเภท", ap?.applicant_type === "internship" ? "เด็กฝึกงาน" : "พนักงานประจำ"),
+    ap?.age ? emailRow("อายุ", `${ap.age} ปี`) : "",
+    roleText ? emailRow("สายงานที่สนใจ", roleText) : "",
+    contact ? emailRow("ติดต่อ", contact) : "",
+    ap?.expected_salary ? emailRow("ค่าตอบแทนที่คาดหวัง", String(ap.expected_salary)) : "",
+    "",
+    ...ivRows(iv).split("</tr>").filter(Boolean).map((s) => s + "</tr>"),
   ].filter(Boolean).join("");
-  const meetBtn = iv.meet_url
-    ? `<a href="${iv.meet_url}" style="display:inline-block;background:#F7BE00;color:#1a1a1a;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:bold;margin-right:8px">🎥 Google Meet</a>`
-    : "";
-  const appBtn = `<a href="${site}/applications/${appId}" style="display:inline-block;background:#eee;color:#1a1a1a;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:bold">📄 เปิดใบสมัคร</a>`;
-  try {
-    await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from,
-        to,
-        subject: `นัดสัมภาษณ์: ${ap?.nickname || ap?.full_name || "ผู้สมัคร"} 🗓️`,
-        html: `<div style="font-family:sans-serif;line-height:1.8;color:#1a1a1a;max-width:520px">
-          <h2>มีนัดสัมภาษณ์ที่คุณเกี่ยวข้อง 🗓️</h2>
-          <table style="font-size:15px;margin:8px 0">${rows}</table>
-          <p style="margin:16px 0">${meetBtn}${appBtn}</p>
-          <p style="font-size:13px;color:#888">YuenDeaw · People OS</p>
-        </div>`,
-      }),
-    });
-  } catch {
-    /* best-effort */
-  }
+  await sendEmail({
+    to: emails,
+    subject: `นัดสัมภาษณ์: ${ap?.nickname || ap?.full_name || "ผู้สมัคร"} 🗓️`,
+    html: emailShell(`
+      <h2 style="margin:0 0 10px">มีนัดสัมภาษณ์ที่คุณเกี่ยวข้อง 🗓️</h2>
+      <table style="font-size:15px;margin:8px 0 14px">${rows}</table>
+      ${ap?.hr_summary ? `<p style="background:#f6f6f6;border-radius:10px;padding:10px 14px;font-size:14px"><b>สรุปจาก HR:</b> ${ap.hr_summary}</p>` : ""}
+      <p style="margin:16px 0">${meetBtn}${resumeBtn}${portBtn}${videoBtn}${appBtn}</p>
+    `),
+  });
 }
 
 // จัดการใบสมัคร: hr screening / owner decision / เปลี่ยนสถานะ / นัดสัมภาษณ์
@@ -143,9 +121,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     // ข้อมูลผู้สมัคร (ใช้ทั้งสร้าง event + ส่งอีเมลยืนยัน)
     const { data: ap } = await admin
       .from("applications")
-      .select("full_name, nickname, email, applicant_type, interested_roles, portfolio_url, intro_video_url, hr_summary")
+      .select("full_name, nickname, email, phone, age, expected_salary, applicant_type, interested_roles, resume_url, portfolio_url, intro_video_url, hr_summary")
       .eq("id", id)
       .maybeSingle();
+    const roleText = (ap?.interested_roles ?? []).map((r: string) => ROLE_LABEL[r] ?? r).join(", ");
 
     // ผู้สัมภาษณ์ที่ถูก tag (อีเมล + user_id สำหรับแจ้งเตือน)
     const ivIds = Array.isArray(iv.interviewers) ? iv.interviewers : [];
@@ -195,16 +174,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     logAction = "interview_scheduled";
     logTitle = `นัดสัมภาษณ์ ${iv.date || ""} ${iv.start || ""}`.trim();
 
-    // อีเมลยืนยันนัดถึงผู้สมัคร (ทุกรูปแบบ ไม่ใช่แค่ Meet)
-    await sendInterviewEmail(ap, iv);
-
-    // อีเมล + แจ้งเตือนถึงทีม: owner + ผู้สัมภาษณ์ที่ถูก tag
+    // owner (ใช้เป็น reply-to ของผู้สมัคร + ผู้รับอีเมลทีม + แจ้งเตือน)
     const { data: owners } = await admin.from("app_users").select("id, email").eq("is_owner", true);
-    const teamEmails = [
-      ...interviewerEmails,
-      ...(owners ?? []).map((o: any) => o.email).filter(Boolean),
-    ];
-    await sendInterviewTeamEmail(teamEmails, ap, iv, id);
+    const ownerEmails = (owners ?? []).map((o: any) => o.email).filter(Boolean);
+
+    // อีเมลนัดถึงผู้สมัคร (reply กลับไปหา owner) — ทุกรูปแบบ ไม่ใช่แค่ Meet
+    await sendInterviewEmail(ap, iv, ownerEmails);
+
+    // อีเมลถึงทีม: owner + ผู้สัมภาษณ์ที่ถูก tag
+    await sendInterviewTeamEmail([...interviewerEmails, ...ownerEmails], ap, iv, id, roleText);
 
     const notifUserIds = [
       ...new Set([
