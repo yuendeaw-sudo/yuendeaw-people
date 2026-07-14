@@ -62,7 +62,7 @@ export default async function ApplicationDetail({ params }: { params: Promise<{ 
         <div className="lg:col-span-2 space-y-5">
           <Card>
             <div className="flex items-start gap-4">
-              <Avatar name={a.nickname || a.full_name} size={64} />
+              <Avatar name={a.nickname || a.full_name} src={a.photo_url} size={64} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-xl font-bold">{a.full_name}{a.nickname && <span className="text-muted font-medium"> ({a.nickname})</span>}</h1>

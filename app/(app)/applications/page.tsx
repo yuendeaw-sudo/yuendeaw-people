@@ -14,7 +14,7 @@ export default async function ApplicationsPage() {
   const { data: apps } = await supabase
     .from("applications")
     .select(
-      "id, full_name, nickname, applicant_type, kind, age, location, email, stage, interested_roles, tags, hr_recommendation, score, intro_video_url, portfolio_url, portfolio_links, available_date, expected_salary, created_at"
+      "id, full_name, nickname, applicant_type, kind, age, location, email, stage, interested_roles, tags, hr_recommendation, score, intro_video_url, portfolio_url, portfolio_links, available_date, expected_salary, photo_url, created_at"
     )
     .order("created_at", { ascending: false });
 

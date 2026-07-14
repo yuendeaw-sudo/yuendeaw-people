@@ -44,6 +44,27 @@ export async function POST(req: Request) {
   };
 
   const admin = createAdminClient();
+
+  // รูปถ่ายผู้สมัคร (base64) → อัปโหลด storage bucket → เก็บ public URL
+  if (typeof b.photo === "string" && b.photo.startsWith("data:image")) {
+    try {
+      const m = b.photo.match(/^data:(image\/\w+);base64,(.+)$/);
+      if (m) {
+        const buf = Buffer.from(m[2], "base64");
+        const ext = (m[1].split("/")[1] || "jpg").replace("jpeg", "jpg");
+        const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await admin.storage
+          .from("applicant-photos")
+          .upload(path, buf, { contentType: m[1], upsert: false });
+        if (!upErr) {
+          row.photo_url = admin.storage.from("applicant-photos").getPublicUrl(path).data.publicUrl;
+        }
+      }
+    } catch {
+      /* photo best-effort — ไม่มีรูปก็สมัครได้ */
+    }
+  }
+
   const { data, error } = await admin.from("applications").insert(row).select("id").single();
   if (error) return new Response(error.message, { status: 500 });
 

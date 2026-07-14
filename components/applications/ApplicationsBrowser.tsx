@@ -110,7 +110,7 @@ export function ApplicationsBrowser({ apps }: { apps: any[] }) {
             return (
               <Link key={a.id} href={`/applications/${a.id}`} className="card p-4 hover:shadow-pop transition">
                 <div className="flex items-start gap-3">
-                  <Avatar name={a.nickname || a.full_name} size={44} />
+                  <Avatar name={a.nickname || a.full_name} src={a.photo_url} size={44} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold truncate">{a.full_name}{a.nickname && <span className="text-muted"> ({a.nickname})</span>}</span>

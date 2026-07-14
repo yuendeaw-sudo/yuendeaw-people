@@ -62,7 +62,6 @@ async function sendInterviewTeamEmail(emails: string[], ap: any, iv: any, appId:
     ap?.age ? emailRow("อายุ", `${ap.age} ปี`) : "",
     roleText ? emailRow("สายงานที่สนใจ", roleText) : "",
     contact ? emailRow("ติดต่อ", contact) : "",
-    ap?.expected_salary ? emailRow("ค่าตอบแทนที่คาดหวัง", String(ap.expected_salary)) : "",
     "",
     ...ivRows(iv).split("</tr>").filter(Boolean).map((s) => s + "</tr>"),
   ].filter(Boolean).join("");
@@ -71,6 +70,7 @@ async function sendInterviewTeamEmail(emails: string[], ap: any, iv: any, appId:
     subject: `นัดสัมภาษณ์: ${ap?.nickname || ap?.full_name || "ผู้สมัคร"} 🗓️`,
     html: emailShell(`
       <h2 style="margin:0 0 10px">มีนัดสัมภาษณ์ที่คุณเกี่ยวข้อง 🗓️</h2>
+      ${ap?.photo_url ? `<div style="text-align:center;margin:4px 0 16px"><img src="${ap.photo_url}" alt="" width="128" height="128" style="border-radius:16px;object-fit:cover;border:1px solid #eee"/></div>` : ""}
       <table style="font-size:15px;margin:8px 0 14px">${rows}</table>
       ${ap?.hr_summary ? `<p style="background:#f6f6f6;border-radius:10px;padding:10px 14px;font-size:14px"><b>สรุปจาก HR:</b> ${ap.hr_summary}</p>` : ""}
       <p style="margin:16px 0">${meetBtn}${resumeBtn}${portBtn}${videoBtn}${appBtn}</p>
@@ -121,7 +121,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     // ข้อมูลผู้สมัคร (ใช้ทั้งสร้าง event + ส่งอีเมลยืนยัน)
     const { data: ap } = await admin
       .from("applications")
-      .select("full_name, nickname, email, phone, age, expected_salary, applicant_type, interested_roles, resume_url, portfolio_url, intro_video_url, hr_summary")
+      .select("full_name, nickname, email, phone, age, photo_url, applicant_type, interested_roles, resume_url, portfolio_url, intro_video_url, hr_summary")
       .eq("id", id)
       .maybeSingle();
     const roleText = (ap?.interested_roles ?? []).map((r: string) => ROLE_LABEL[r] ?? r).join(", ");

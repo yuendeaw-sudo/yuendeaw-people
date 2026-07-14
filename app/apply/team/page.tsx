@@ -95,10 +95,44 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
     creative_answers: { q1: "", q2: "", q3: "" },
     attitude_answers: { q1: "", q2: "", q3: "" },
     university: "", faculty: "", internship_months: "",
+    photo: "",
     consent: false,
   });
   const isIntern = type === "internship";
   const Q = questionsFor(type);
+
+  // อ่านรูป → ย่อ (สูงสุด 600px) → jpeg dataURL พื้นขาว
+  async function readPhoto(file: File) {
+    if (!file.type.startsWith("image/")) return;
+    const dataUrl: string = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result as string);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+    const img = await new Promise<HTMLImageElement>((res, rej) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = rej;
+      im.src = dataUrl;
+    });
+    const MAX = 600;
+    let { width, height } = img;
+    if (width > MAX || height > MAX) {
+      const s = Math.min(MAX / width, MAX / height);
+      width = Math.round(width * s);
+      height = Math.round(height * s);
+    }
+    const c = document.createElement("canvas");
+    c.width = width;
+    c.height = height;
+    const ctx = c.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+    set("photo", c.toDataURL("image/jpeg", 0.82));
+  }
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const set = (k: string, v: any) => setF((s: any) => ({ ...s, [k]: v }));
@@ -127,6 +161,7 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
         intro_video_url: f.intro_video_url,
         creative_answers: f.creative_answers, attitude_answers: isIntern ? {} : f.attitude_answers,
         answers: isIntern ? { university: f.university, faculty: f.faculty, internship_months: f.internship_months } : {},
+        photo: f.photo || undefined,
         consent_to_store_profile: f.consent,
       };
       const r = await fetch("/api/applications/submit", {
@@ -151,6 +186,24 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
 
       {/* ข้อมูลพื้นฐาน */}
       <Section title="ข้อมูลพื้นฐาน">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="size-20 rounded-full bg-sand overflow-hidden grid place-items-center shrink-0 border border-sand">
+            {f.photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={f.photo} alt="" className="size-full object-cover" />
+            ) : (
+              <Icon name="User" className="size-8 text-muted" />
+            )}
+          </div>
+          <div>
+            <label className="btn-outline cursor-pointer inline-flex text-sm">
+              <Icon name="Camera" className="size-4" /> {f.photo ? "เปลี่ยนรูป" : "อัปโหลดรูปถ่าย"}
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) readPhoto(file); e.target.value = ""; }} />
+            </label>
+            {f.photo && <button type="button" onClick={() => set("photo", "")} className="ml-2 text-xs text-muted hover:text-rose">ลบรูป</button>}
+            <p className="text-[11px] text-muted mt-1">รูปหน้าตรงชัด ๆ ช่วยให้ทีมจำคุณได้ (ไม่บังคับ)</p>
+          </div>
+        </div>
         <div className="grid sm:grid-cols-2 gap-3">
           <T label="ชื่อ-นามสกุล *" v={f.full_name} on={(v) => set("full_name", v)} />
           <T label="ชื่อเล่น" v={f.nickname} on={(v) => set("nickname", v)} />
