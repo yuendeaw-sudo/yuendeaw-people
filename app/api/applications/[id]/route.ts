@@ -3,8 +3,56 @@ import { can } from "@/lib/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ROLE_LABEL } from "@/lib/applications";
 import { googleCalendarConfigured, createInterviewEvent, addOneHour } from "@/lib/google-calendar";
+import { formatThaiDate } from "@/lib/utils";
 
 export const runtime = "nodejs";
+
+// อีเมลยืนยันนัดสัมภาษณ์ถึงผู้สมัคร (best-effort — ส่งเมื่อตั้ง Resend)
+async function sendInterviewEmail(ap: any, iv: any) {
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM;
+  if (!key || !from || !ap?.email) return;
+  const loc =
+    iv.location === "Google Meet" ? "ออนไลน์ (Google Meet)" :
+    iv.location === "On-site" ? "ที่ออฟฟิศ YuenDeaw" :
+    iv.location === "Phone" ? "ทางโทรศัพท์" : (iv.location || "-");
+  const timeStr = [iv.start, iv.end].filter(Boolean).join(" - ");
+  const row = (l: string, v: string) => `<tr><td style="padding:5px 14px 5px 0;color:#888;white-space:nowrap">${l}</td><td><b>${v}</b></td></tr>`;
+  const rows = [
+    row("ประเภท", iv.type || "สัมภาษณ์งาน"),
+    iv.date ? row("วันที่", formatThaiDate(iv.date)) : "",
+    timeStr ? row("เวลา", `${timeStr} น.`) : "",
+    row("รูปแบบ", loc),
+  ].filter(Boolean).join("");
+  const meetBtn = iv.meet_url
+    ? `<p style="margin:16px 0"><a href="${iv.meet_url}" style="display:inline-block;background:#F7BE00;color:#1a1a1a;padding:11px 20px;border-radius:12px;text-decoration:none;font-weight:bold">🎥 เข้าห้อง Google Meet</a></p>`
+    : "";
+  const notes = iv.notes_for_candidate ? `<p style="color:#555">📝 ${iv.notes_for_candidate}</p>` : "";
+  const name = ap.nickname || ap.full_name || "";
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from,
+        to: ap.email,
+        subject: "นัดสัมภาษณ์กับ YuenDeaw 🎤",
+        html: `<div style="font-family:sans-serif;line-height:1.8;color:#1a1a1a;max-width:520px">
+          <h2>สวัสดี ${name} 🎉</h2>
+          <p>ทีมยืนเดี่ยวได้นัดสัมภาษณ์คุณแล้ว รายละเอียดตามนี้:</p>
+          <table style="font-size:15px;margin:8px 0">${rows}</table>
+          ${meetBtn}
+          ${notes}
+          <p style="color:#8A6800">อีกไม่นานเจอกันนะครับ 💛</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
+          <p style="font-size:13px;color:#888">YuenDeaw · People OS</p>
+        </div>`,
+      }),
+    });
+  } catch {
+    /* best-effort */
+  }
+}
 
 // จัดการใบสมัคร: hr screening / owner decision / เปลี่ยนสถานะ / นัดสัมภาษณ์
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -46,14 +94,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   } else if (action === "interview") {
     // นัดสัมภาษณ์ — สร้าง Google Calendar event + Meet จริง (ถ้าตั้ง env แล้ว) ไม่งั้น fallback mock
     const iv = body.interview || {};
+    // ข้อมูลผู้สมัคร (ใช้ทั้งสร้าง event + ส่งอีเมลยืนยัน)
+    const { data: ap } = await admin
+      .from("applications")
+      .select("full_name, nickname, email, applicant_type, interested_roles, portfolio_url, intro_video_url, hr_summary")
+      .eq("id", id)
+      .maybeSingle();
+
     if (iv.location === "Google Meet" && !iv.meet_url) {
       let real: { meetUrl: string | null; htmlLink: string | null; eventId: string | null } | null = null;
       if (googleCalendarConfigured() && iv.date) {
-        const { data: ap } = await admin
-          .from("applications")
-          .select("full_name, email, applicant_type, interested_roles, portfolio_url, intro_video_url, hr_summary")
-          .eq("id", id)
-          .maybeSingle();
         const ivIds = Array.isArray(iv.interviewers) ? iv.interviewers : [];
         const { data: ivEmps } = ivIds.length
           ? await admin.from("employees").select("email").in("id", ivIds)
@@ -96,6 +146,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     patch.stage = "interview_scheduled";
     logAction = "interview_scheduled";
     logTitle = `นัดสัมภาษณ์ ${iv.date || ""} ${iv.start || ""}`.trim();
+
+    // อีเมลยืนยันนัดถึงผู้สมัคร (ทุกรูปแบบ ไม่ใช่แค่ Meet)
+    await sendInterviewEmail(ap, iv);
   } else {
     return new Response("unknown action", { status: 400 });
   }
