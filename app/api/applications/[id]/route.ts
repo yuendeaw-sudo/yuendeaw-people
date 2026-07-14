@@ -54,6 +54,52 @@ async function sendInterviewEmail(ap: any, iv: any) {
   }
 }
 
+// อีเมลถึงทีม (owner + ผู้สัมภาษณ์ที่ถูก tag) — พร้อมข้อมูลผู้สมัคร + ปุ่มเปิดใบสมัคร
+async function sendInterviewTeamEmail(emails: string[], ap: any, iv: any, appId: string) {
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM;
+  const to = [...new Set(emails.filter(Boolean))];
+  if (!key || !from || to.length === 0) return;
+  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://people.yuendeaw.com";
+  const loc =
+    iv.location === "Google Meet" ? "ออนไลน์ (Google Meet)" :
+    iv.location === "On-site" ? "ที่ออฟฟิศ YuenDeaw" :
+    iv.location === "Phone" ? "ทางโทรศัพท์" : (iv.location || "-");
+  const timeStr = [iv.start, iv.end].filter(Boolean).join(" - ");
+  const row = (l: string, v: string) => `<tr><td style="padding:5px 14px 5px 0;color:#888;white-space:nowrap">${l}</td><td><b>${v}</b></td></tr>`;
+  const rows = [
+    row("ผู้สมัคร", `${ap?.full_name || "-"}${ap?.nickname ? ` (${ap.nickname})` : ""}`),
+    row("ประเภท", ap?.applicant_type === "internship" ? "เด็กฝึกงาน" : "พนักงานประจำ"),
+    row("รอบ", iv.type || "สัมภาษณ์"),
+    iv.date ? row("วันที่", formatThaiDate(iv.date)) : "",
+    timeStr ? row("เวลา", `${timeStr} น.`) : "",
+    row("รูปแบบ", loc),
+  ].filter(Boolean).join("");
+  const meetBtn = iv.meet_url
+    ? `<a href="${iv.meet_url}" style="display:inline-block;background:#F7BE00;color:#1a1a1a;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:bold;margin-right:8px">🎥 Google Meet</a>`
+    : "";
+  const appBtn = `<a href="${site}/applications/${appId}" style="display:inline-block;background:#eee;color:#1a1a1a;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:bold">📄 เปิดใบสมัคร</a>`;
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from,
+        to,
+        subject: `นัดสัมภาษณ์: ${ap?.nickname || ap?.full_name || "ผู้สมัคร"} 🗓️`,
+        html: `<div style="font-family:sans-serif;line-height:1.8;color:#1a1a1a;max-width:520px">
+          <h2>มีนัดสัมภาษณ์ที่คุณเกี่ยวข้อง 🗓️</h2>
+          <table style="font-size:15px;margin:8px 0">${rows}</table>
+          <p style="margin:16px 0">${meetBtn}${appBtn}</p>
+          <p style="font-size:13px;color:#888">YuenDeaw · People OS</p>
+        </div>`,
+      }),
+    });
+  } catch {
+    /* best-effort */
+  }
+}
+
 // จัดการใบสมัคร: hr screening / owner decision / เปลี่ยนสถานะ / นัดสัมภาษณ์
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -101,14 +147,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       .eq("id", id)
       .maybeSingle();
 
+    // ผู้สัมภาษณ์ที่ถูก tag (อีเมล + user_id สำหรับแจ้งเตือน)
+    const ivIds = Array.isArray(iv.interviewers) ? iv.interviewers : [];
+    const { data: ivEmps } = ivIds.length
+      ? await admin.from("employees").select("email, user_id").in("id", ivIds)
+      : { data: [] as any[] };
+    const interviewerEmails = (ivEmps ?? []).map((e: any) => e.email).filter(Boolean);
+
     if (iv.location === "Google Meet" && !iv.meet_url) {
       let real: { meetUrl: string | null; htmlLink: string | null; eventId: string | null } | null = null;
       if (googleCalendarConfigured() && iv.date) {
-        const ivIds = Array.isArray(iv.interviewers) ? iv.interviewers : [];
-        const { data: ivEmps } = ivIds.length
-          ? await admin.from("employees").select("email").in("id", ivIds)
-          : { data: [] as any[] };
-        const interviewerEmails = (ivEmps ?? []).map((e: any) => e.email).filter(Boolean);
         const roles = (ap?.interested_roles ?? []).map((r: string) => ROLE_LABEL[r] ?? r).join(", ");
         const startISO = `${iv.date}T${(iv.start || "10:00")}:00`;
         const endISO = `${iv.date}T${(iv.end || addOneHour(iv.start || "10:00"))}:00`;
@@ -149,6 +197,32 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     // อีเมลยืนยันนัดถึงผู้สมัคร (ทุกรูปแบบ ไม่ใช่แค่ Meet)
     await sendInterviewEmail(ap, iv);
+
+    // อีเมล + แจ้งเตือนถึงทีม: owner + ผู้สัมภาษณ์ที่ถูก tag
+    const { data: owners } = await admin.from("app_users").select("id, email").eq("is_owner", true);
+    const teamEmails = [
+      ...interviewerEmails,
+      ...(owners ?? []).map((o: any) => o.email).filter(Boolean),
+    ];
+    await sendInterviewTeamEmail(teamEmails, ap, iv, id);
+
+    const notifUserIds = [
+      ...new Set([
+        ...(ivEmps ?? []).map((e: any) => e.user_id).filter(Boolean),
+        ...(owners ?? []).map((o: any) => o.id),
+      ]),
+    ];
+    if (notifUserIds.length) {
+      await admin.from("notifications").insert(
+        notifUserIds.map((uid) => ({
+          user_id: uid,
+          title: "มีนัดสัมภาษณ์ 🗓️",
+          body: `${ap?.nickname || ap?.full_name || "ผู้สมัคร"} · ${formatThaiDate(iv.date)}${iv.start ? ` ${iv.start} น.` : ""}`,
+          link: `/applications/${id}`,
+          kind: "interview",
+        }))
+      );
+    }
   } else {
     return new Response("unknown action", { status: 400 });
   }
