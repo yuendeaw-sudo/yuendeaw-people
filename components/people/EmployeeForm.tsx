@@ -237,8 +237,15 @@ export function EmployeeForm({
           <Input label="ชื่อเล่น" value={f.nickname} onChange={(v) => set("nickname", v)} />
           <div>
             <label className="label">รหัสพนักงาน</label>
-            {mode === "edit" ? (
+            {mode === "edit" && e.employee_code ? (
               <input className="input bg-sand/40 text-muted" value={f.employee_code} disabled />
+            ) : mode === "edit" ? (
+              <input
+                className="input"
+                value={f.employee_code}
+                onChange={(ev) => set("employee_code", ev.target.value.toUpperCase())}
+                placeholder="ยังไม่มีรหัส — กรอกเอง เช่น YD-013 / TR-007"
+              />
             ) : (
               <div className="input bg-sand/40 text-muted flex items-center text-sm">
                 ระบบออกให้อัตโนมัติ — พนักงาน = YD, เด็กฝึกงาน = TR
