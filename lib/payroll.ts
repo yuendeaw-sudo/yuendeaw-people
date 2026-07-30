@@ -14,6 +14,13 @@ export function computeSSO(salary?: number | null): number {
   return Math.round(Math.min(Math.max(salary, SSO_FLOOR), SSO_CEIL) * SSO_RATE);
 }
 
+// บวกเดือน (ใช้หาค่าเริ่มจ่ายเบี้ยเด็กฝึก = วันเริ่มงาน + 1 เดือน เมื่อยังไม่ตั้ง stipend_start)
+function addMonths(ymd: string, n: number): string {
+  const d = new Date(ymd + "T00:00:00");
+  d.setMonth(d.getMonth() + n);
+  return d.toISOString().slice(0, 10);
+}
+
 export type PayrollRow = {
   employeeId: string;
   code: string | null;
@@ -57,6 +64,8 @@ export async function computePayroll(supabase: any, year: number, month: number)
 
   const latestComp: Record<string, number> = {};
   for (const c of comp ?? []) {
+    // ข้ามการปรับเงินเดือนที่ยังไม่มีผลในเดือนนี้ (effective_date อยู่ในอนาคต)
+    if (c.effective_date && c.effective_date > end) continue;
     if (!(c.employee_id in latestComp)) latestComp[c.employee_id] = Number(c.amount || 0);
   }
   const logsByIntern: Record<string, string[]> = {};
@@ -71,11 +80,19 @@ export async function computePayroll(supabase: any, year: number, month: number)
   const welfareM = sumBy(welfare ?? [], (w) => w.paid_on && w.paid_on >= start && w.paid_on <= end);
   const otM = sumBy(ot ?? [], () => true); // filter ทำใน query แล้ว
 
-  const rows: PayrollRow[] = (emps ?? []).map((e: any) => {
+  // ตัดคนที่ยังไม่เริ่มงานในเดือนนี้ (วันเริ่มงานอยู่หลังสิ้นเดือน) ออกจาก payroll
+  const started = (emps ?? []).filter((e: any) => !e.start_date || e.start_date <= end);
+
+  const rows: PayrollRow[] = started.map((e: any) => {
     const isIntern = e.employment_types?.key === "intern";
     const salary = isIntern ? 0 : latestComp[e.id] ?? 0; // เด็กฝึกไม่มีเงินเดือน มีแค่เบี้ย
-    const days = stipendDays(logsByIntern[e.id] ?? [], e.stipend_start_date ?? null, todayYmd, start, end);
-    const stipend = stipendAmount(days, Number(e.stipend_daily_rate) || DEFAULT_STIPEND);
+    // เบี้ยฝึก: เริ่มจ่ายจาก stipend_start ถ้ามี ไม่งั้นใช้ วันเริ่มงาน + 1 เดือน (เดือนแรกไม่จ่าย)
+    let stipend = 0;
+    if (isIntern) {
+      const iStart = e.stipend_start_date ?? (e.start_date ? addMonths(e.start_date, 1) : null);
+      const days = stipendDays(logsByIntern[e.id] ?? [], iStart, todayYmd, start, end);
+      stipend = stipendAmount(days, Number(e.stipend_daily_rate) || DEFAULT_STIPEND);
+    }
     const pay = salary + stipend;
 
     // ประกันสังคมเฉพาะพนักงานที่ขึ้นสิทธิ์ (เด็กฝึกไม่มี) → หัก 5%
