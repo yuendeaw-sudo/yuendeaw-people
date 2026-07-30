@@ -8,6 +8,7 @@ import { formatThaiDate } from "@/lib/utils";
 import { LeaveBalances } from "@/components/leave/LeaveBalances";
 import { LeavePolicyGuide } from "@/components/leave/LeavePolicyGuide";
 import { InternDailyLog } from "@/components/intern/InternDailyLog";
+import { TeamTodayStatus } from "@/components/leave/TeamTodayStatus";
 import { stipendDays, stipendAmount, evalDueFromStart, DEFAULT_STIPEND } from "@/lib/intern";
 
 export default async function DashboardPage() {
@@ -141,6 +142,9 @@ export default async function DashboardPage() {
         </h1>
         <p className="text-muted text-sm mt-1">ภาพรวมของวันนี้</p>
       </div>
+
+      {/* ทีมวันนี้ — ทุกคนเห็น (ใคร WFH / ออกกอง / ลา) */}
+      <TeamTodayStatus />
 
       {/* HR / Owner overview */}
       {isHR && (
