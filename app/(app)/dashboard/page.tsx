@@ -4,7 +4,7 @@ import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { Card, StatCard, Badge, EmptyState, statusBadge } from "@/components/ui";
 import { Icon } from "@/components/Icon";
-import { formatThaiDate } from "@/lib/utils";
+import { formatThaiDate, hourBangkok } from "@/lib/utils";
 import { LeaveBalances } from "@/components/leave/LeaveBalances";
 import { LeavePolicyGuide } from "@/components/leave/LeavePolicyGuide";
 import { InternDailyLog } from "@/components/intern/InternDailyLog";
@@ -17,8 +17,8 @@ export default async function DashboardPage() {
   const isHR = can(ctx, "people", "view");
   const isLeaveMgr = can(ctx, "time_leave", "view") || can(ctx, "time_leave", "approve");
 
-  const hour = new Date().getHours();
-  const greet = hour < 12 ? "สวัสดีตอนเช้า" : hour < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น";
+  const hour = hourBangkok();
+  const greet = hour < 12 ? "สวัสดีตอนเช้า" : hour < 17 ? "สวัสดีตอนบ่าย" : hour < 20 ? "สวัสดีตอนเย็น" : "สวัสดีตอนค่ำ";
 
   // The personal / HR / leave blocks are independent → run them concurrently.
   const year = new Date().getFullYear();

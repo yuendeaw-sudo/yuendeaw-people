@@ -1,12 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Avatar } from "@/components/ui";
 import { Icon } from "@/components/Icon";
-import { formatThaiDate } from "@/lib/utils";
+import { formatThaiDate, todayBangkok } from "@/lib/utils";
 
 // "ทีมวันนี้" — ใครวันนี้ WFH / ออกกอง / ลาหยุด (ทุกคนเห็น เพื่อวางแผนงาน)
 export async function TeamTodayStatus() {
   const admin = createAdminClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayBangkok();
   const { data } = await admin
     .from("leave_requests")
     .select(

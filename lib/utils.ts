@@ -5,6 +5,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// เวลา/วันที่ตามเขตเวลาไทย — server (Vercel) รันเป็น UTC ต้องแปลงก่อนใช้
+export function todayBangkok(): string {
+  // en-CA → รูปแบบ YYYY-MM-DD
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+}
+export function hourBangkok(): number {
+  return Number(
+    new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Bangkok",
+      hour: "2-digit",
+      hour12: false,
+      hourCycle: "h23",
+    })
+  );
+}
+
 export function formatTHB(n: number | null | undefined) {
   if (n == null) return "—";
   return new Intl.NumberFormat("th-TH", {
