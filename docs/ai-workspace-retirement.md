@@ -1,7 +1,9 @@
 # AI Workspace retirement — safe migration checklist
 
+> **Status changed on 2026-10-20:** The owner confirmed directly deleting the Supabase project `qbkrsexjksmjnrevtrnn`. Supabase now lists only the live STANd, Communeed and YuenDeaw People projects. The earlier goal of preserving data *by transferring and pausing the existing project* is no longer possible: Supabase states deletion is irreversible, including Supabase-hosted backups. Historical data requires an already downloaded external backup; **none has been verified**. LINE Developers still points to the old database-dependent Vercel endpoint, so a new working webhook must be tested before switching. No working rollback to the old Supabase backend exists. PR #2 / PR #3 remain Draft.
+
 ## Goal
-Stop billed Supabase Compute for `ai-workspace` (`qbkrsexjksmjnrevtrnn`) **without deleting its historic data**, while preserving live People OS workflows and handling separate LINE/Discord integrations.
+**Revised goal:** Restore the general-purpose LINE assistant on existing People OS and remove obsolete web dependencies. Legacy ai-workspace Compute has already ended because the owner deleted its Supabase project; we cannot ensure preservation of hosted historical data. Check for independently downloaded backups before attempting any restoration.
 
 ## Phase 1 — People OS replacement (current Draft PR)
 - [x] Replace People OS `/ai-workplace` iframe to `https://ai.yuendeaw.com` with same-site, signed-in agent launcher.
@@ -49,19 +51,19 @@ Stop billed Supabase Compute for `ai-workspace` (`qbkrsexjksmjnrevtrnn`) **witho
 - Do **not** change the actual LINE Developers Webhook URL, Discord Developer settings, Production Vercel secrets, legacy Supabase organization or historical chat data based solely on a Draft PR.
 - LINE-specific cutover, QA, backup/rollback and Discord retirement instructions: `docs/ai-line-cutover.md` in the PR #3 branch.
 
-## Phase 3 — Archives and recovery
-- Existing `ai-workspace` Supabase: 16 public tables; AI chat messages, documents, usage history, linked bot channels.
-- [ ] Obtain verified full Postgres backup/export, including Auth identities/policies/functions/extensions and migration history; redact confidential info and store privately, never in GitHub.
-- [ ] Export Supabase Storage buckets and verify file count and restore test; Storage inventory currently **not independently verified** due connector permission.
-- [ ] Preserve relevant Vercel env configuration/secret inventory securely and document domain ownership/rollback. **Do not commit secrets**.
-- [ ] Test data restore in isolated destination and record checksum / counts / recovery procedure.
+## Phase 3 — Data recovery after deletion
+- [x] Confirmed the old `ai-workspace` Supabase project is absent from the owner's accessible organization.
+- [ ] Ask whether the owner downloaded a separate database backup or exported Storage/chat history before deleting it.
+- [ ] If a verifiable offline backup exists, inventory/validate it privately and assess restoration to a separately approved location. Never publish sensitive data to GitHub.
+- [ ] If no offline backup exists, explicitly record loss of legacy Supabase-hosted chat, documents, LINE group mapping and Auth identities. Source code and migrations remain on GitHub; old rows do not.
+- [ ] Keep Vercel project configuration secure while transferring the exact LINE AI channel credentials to People OS. Do not share tokens in chat.
+- [ ] Audit any other remaining custom domains, API dependencies and AI/LINE/Discord credentials of the still-deployed old Vercel project.
 
-## Phase 4 — Stop Compute (separate approval required)
-- Supabase Pro projects cannot be directly paused. Supabase docs describe transferring an eligible project under 500 MB to a Free organization, then pausing it.
-- Current PostgreSQL database estimate was approximately 15 MB; this is NOT a full disk/storage eligibility check.
-- [ ] Create/identify appropriate Free organization and confirm eligibility, quotas and transfer constraints.
-- [ ] Owner approves exact project move + downtime to `ai-workspace` only, *after* Dependencies and backups pass.
-- [ ] Transfer and pause project; verify `Stand-next-stage`, Communeed, and YuenDeaw People remain healthy and billing compute falls.
-- [ ] Keep archive, rollback and limited monitoring notes.
+## Phase 4 — Billing / retirement
+- [x] Old Supabase project was deleted by the owner; no transfer or pause remains possible.
+- [ ] Confirm subsequent Supabase invoices contain no further Compute hours for deleted project; charges incurred before deletion may remain.
+- [ ] Ship the replacement signed LINE AI webhook from [PR #3](https://github.com/yuendeaw-sudo/yuendeaw-people/pull/3), using only an approved LINE group, selected `general_assistant`, and a controlled provider test.
+- [ ] Decommission Discord at the developer portal (owner no longer uses Discord bot) and revoke unneeded credentials; preserve any independently backed-up data.
+- [ ] Retire the legacy Vercel project and domains only after LINE cutover and verification of unrelated dependencies; old webhook is already nonfunctional due to deleted Supabase.
 
-**Never delete ai-workspace project/database merely to save cost. Do not merge this PR automatically.**
+**No automatic PR merge, webhook switch, credential revocation, Production SQL application, or deletion was performed by this document change.**
