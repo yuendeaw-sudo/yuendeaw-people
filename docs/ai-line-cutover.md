@@ -7,12 +7,23 @@
 - Do not stop or delete legacy Supabase project \`qbkrsexjksmjnrevtrnn\` until LINE cutover, backup and restore checks pass.
 - Legacy ai-workspace Production and LINE Developers webhook settings are **not changed by this Draft PR**.
 
+## AI bot persona — owner decision (2026-10-20)
+The owner confirmed that **"อ๋อย" is a general-purpose AI assistant**, not a
+Production Assistant, HR assistant, or any other department-specific agent.
+
+- Virtual identifier: `general_assistant`; display name: **อ๋อย**.
+- General system prompt supports questions, brainstorming, plans, writing and rewriting, summaries and problem solving in Thai.
+- The bot intentionally does **not** read People OS employee data, owner-only prompts or the legacy company Knowledge Base.
+- All permitted LINE groups must map to `general_assistant` only. Any specialist value fails closed at server configuration validation.
+- No extra Supabase users, `ai_agents` rows or databases need to be created.
+- Usage metadata stores `agent_key: "general_assistant"` with a null `agent_id` (nullable field in existing People OS database).
+
 ## Replacement architecture
 - New endpoint: https://people.yuendeaw.com/api/line/ai (only after this PR is reviewed and merged).
 - It runs on existing YuenDeaw People (Vercel project \`yuendeaw-people\` / Supabase project \`bhvbkqcporxbfobehvns\`).
 - It does not create new Supabase projects, members or global AI workspaces.
 - Trigger words preserved: \`ai\`, \`อ๋อย\`, \`น้องอ๋อย\`, and genuine @bot mention.
-- Accepts only configured LINE Group/room IDs. Different LINE groups may map to different **non-owner** People OS \`ai_agents.key\` values. No private/owner-only AI agents may be used by the bot.
+- Accepts only configured LINE Group/room IDs. Every approved group maps to the virtual \`general_assistant\` persona. The bot does not load or expose employee/owner-only \`ai_agents\` prompts.
 - Verifies raw-body LINE HMAC-SHA256 in constant time before reading events; does not trust the caller's identity or free-text chosen agent name.
 - Dedupe on hashed \`webhookEventId\`, limit eight requests per group per 60 seconds, and store only opaque event/group hashes and token usage metrics (no raw message text or LINE reply tokens).
 - LINE's verify request (\`events: []\`) must return HTTP 200 after the private credentials are supplied and signature is valid.
@@ -38,17 +49,17 @@ into GitHub, chat, browser console, or a URL query string.
 | \`LINE_AI_ENABLED\` | \`true\` ONLY after cutover prerequisites, otherwise fail closed |
 | \`LINE_AI_CHANNEL_SECRET\` | Secret belonging to the **exact existing AI LINE Messaging API channel** |
 | \`LINE_AI_CHANNEL_ACCESS_TOKEN\` | Access token for the **same** channel |
-| \`LINE_AI_GROUP_AGENTS_JSON\` | Server-side map from approved group/room ID to People OS \`ai_agents.key\` |
+| \`LINE_AI_GROUP_AGENTS_JSON\` | Server-side map from approved group/room ID to the literal \`general_assistant\` only |
 | \`LINE_AI_MODEL\` | An available Anthropic model chosen for cost/quality |
 | \`ANTHROPIC_API_KEY\` | Existing People OS server-side secret, already configured |
 
 Example mapping format only (do not use fake IDs in Production):
 \`\`\`json
-{"C_REPLACE_WITH_REAL_GROUP_ID":"production_assistant"}
+{"C_REPLACE_WITH_REAL_GROUP_ID":"general_assistant"}
 \`\`\`
-Make sure the configured group uses an active, non-owner People OS agent; the
-legacy \`line_group_links\` team/agent mapping cannot be copied blindly because
-the new People OS agent IDs and model are different.
+This bot does not use People OS specialist agents. Do not map the LINE channel
+to a Production/HR/Sales/owner-only employee Agent; the existing legacy
+\`line_group_links\` team/agent IDs are not used in the new system.
 
 **Do NOT copy Communeed's LINE OA booking secrets** into this AI Bot.
 
@@ -58,6 +69,7 @@ the new People OS agent IDs and model are different.
    - unsigned / invalid-signature POST → 401 (provided server is configured);
    - valid signed empty-event POST → 200;
    - wrong-group signed text event → 200, but no LLM call or DB writes;
+   - a configuration mapping to a specialist agent must return 503; only `general_assistant` is allowed;
    - replayed valid event cannot create duplicate claims (with DB test table in place).
 3. With real, **server-only Preview** configuration and approved QA group, run one
    owner-approved real LINE message via \`ai ...\`, verify one reply, DB event and
