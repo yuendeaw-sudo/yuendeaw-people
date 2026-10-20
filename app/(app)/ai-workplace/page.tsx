@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { PageHeader, EmptyState } from "@/components/ui";
+import { redirect } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { getAccessContext } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -31,9 +33,10 @@ function canSeeAgent(agent: Agent, isOwner: boolean): boolean {
  */
 export default async function AIWorkplacePage() {
   const ctx = await getAccessContext();
-  if (!ctx) {
-    return <EmptyState icon="Bot" title="กรุณาเข้าสู่ระบบก่อนใช้งาน AI Workplace" />;
-  }
+  if (!ctx) redirect("/login");
+  if (!ctx.isOwner && !ctx.employeeId) redirect("/pending");
+  // A direct URL must not bypass the same entitlement as the navigation.
+  if (!can(ctx, "ai_workplace", "view")) redirect("/dashboard");
 
   const supabase = await createClient();
   const { data, error } = await supabase
