@@ -12,6 +12,8 @@ import {
   LINE_GENERAL_ASSISTANT_NAME,
   LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT,
   isGeneralLineAssistant,
+  isLineGroupDiscoveryCommand,
+  isWellFormedLineGroupId,
 } from "../lib/line-ai/webhook.ts";
 
 const groupA = "C1234567890abcdef";
@@ -68,6 +70,21 @@ test("Aoy is a general-purpose assistant, not a department-specific agent", () =
   assert.match(LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT, /ไม่จำกัดตัวเองว่าเป็นฝ่าย Production/);
   assert.match(LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT, /ห้ามเดา/);
   assert.ok(LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT.includes("\n"), "System prompt must retain paragraph breaks");
+});
+
+test("group discovery is explicit and does not turn a normal chat into enrollment", () => {
+  assert.equal(isLineGroupDiscoveryCommand("อ๋อย group id"), true);
+  assert.equal(isLineGroupDiscoveryCommand("ai group-id"), true);
+  assert.equal(isLineGroupDiscoveryCommand("น้องอ๋อย รหัสกลุ่ม"), true);
+  assert.equal(isLineGroupDiscoveryCommand("AI id กลุ่ม"), true);
+  assert.equal(isLineGroupDiscoveryCommand("อ๋อย ช่วยคิดงาน"), false);
+  assert.equal(isLineGroupDiscoveryCommand("สวัสดี อ๋อย group id"), false);
+  assert.equal(isLineGroupDiscoveryCommand("อ๋อย group id แล้วช่วยสรุป"), false);
+  assert.equal(isLineGroupDiscoveryCommand("ไอดีกรุ๊ป"), false);
+  assert.equal(isWellFormedLineGroupId(groupA), true);
+  assert.equal(isWellFormedLineGroupId(groupB), true);
+  assert.equal(isWellFormedLineGroupId("A-other-group"), false);
+  assert.equal(isWellFormedLineGroupId(""), false);
 });
 
 test("preserves old Thai/English triggers but ignores unrelated messages", () => {
