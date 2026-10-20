@@ -20,6 +20,17 @@ Production Assistant, HR assistant, or any other department-specific agent.
 - No extra Supabase users, `ai_agents` rows or databases need to be created.
 - Usage metadata stores `agent_key: "general_assistant"` with a null `agent_id` (nullable field in existing People OS database).
 
+## Confirmed backup status and onboarding — 2026-10-20
+- The owner confirmed **no independent database dump, downloaded backup or chat export exists** from the deleted Supabase `ai-workspace` project. Its historical conversations, stored knowledge and old line_group_links records **cannot be reconstructed** from the remaining GitHub source.
+- Existing LINE Channel credentials belong to the old **Vercel** project and may still be securely reused; legacy Supabase credentials **must not** be reused.
+- To avoid requiring a login to the broken old AI Workspace admin, use a temporary **LINE group discovery mode** on the replacement endpoint:
+  1. On People OS Vercel configure only the dedicated AI LINE Channel Secret and Access Token (server-only), set `LINE_AI_GROUP_DISCOVERY_MODE=true`, and leave `LINE_AI_ENABLED=false`. Both true fails closed.
+  2. Once the replacement route is approved, deployed and the LINE Developers webhook is switched to `https://people.yuendeaw.com/api/line/ai`, write **`อ๋อย group id`** inside the existing LINE group where the bot is a member.
+  3. The signed webhook replies with that group's exact ID **inside the same LINE group only**. It does not call an AI model, accept general messages, store raw IDs, or write database records.
+  4. Owner verifies the correct LINE group ID and authorizes adding it to `LINE_AI_GROUP_AGENTS_JSON` mapping to `general_assistant`. Disable discovery mode, configure `LINE_AI_MODEL`, and set `LINE_AI_ENABLED=true` only after approved SQL and separate signed/real delivery QA.
+  5. Verify LINE Developers **Verify** and one normal AI response. Unlike the original plan, **the deleted legacy database-backed URL cannot be used as a working rollback**.
+- Mode-specific variables: `LINE_AI_GROUP_DISCOVERY_MODE` is true only while recovering the group ID. If AI is disabled and discovery is off, the webhook responds 503. No group ID recovery occurs automatically without an authenticated provider event.
+
 ## Replacement architecture
 - New endpoint: https://people.yuendeaw.com/api/line/ai (only after this PR is reviewed and merged).
 - It runs on existing YuenDeaw People (Vercel project `yuendeaw-people` / Supabase project `bhvbkqcporxbfobehvns`).
@@ -48,7 +59,8 @@ into GitHub, chat, browser console, or a URL query string.
 
 | Name | Scope / purpose |
 |---|---|
-| `LINE_AI_ENABLED` | `true` ONLY after cutover prerequisites, otherwise fail closed |
+| `LINE_AI_ENABLED` | `false` during discovery; `true` ONLY after approved live cutover and prerequisites |
+| `LINE_AI_GROUP_DISCOVERY_MODE` | `true` only during signed group-ID recovery, then `false` before AI is enabled; both modes active is rejected |
 | `LINE_AI_CHANNEL_SECRET` | Secret belonging to the **exact existing AI LINE Messaging API channel** |
 | `LINE_AI_CHANNEL_ACCESS_TOKEN` | Access token for the **same** channel |
 | `LINE_AI_GROUP_AGENTS_JSON` | Server-side map from approved group/room ID to the literal `general_assistant` only |
