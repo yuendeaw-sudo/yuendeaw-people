@@ -7,6 +7,9 @@ import {
   opaqueLineEventHash,
   parseLineGroupAgents,
   verifyLineSignature,
+  isGeneralLineAssistant,
+  LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT,
+  LINE_GENERAL_ASSISTANT_NAME,
   type LineMention,
 } from "@/lib/line-ai/webhook";
 
@@ -44,6 +47,9 @@ function configOrNull(): { secret: string; config: LineConfig } | null {
   if (!secret || !token || !model || !encodedMap || !process.env.ANTHROPIC_API_KEY) return null;
   try {
     const agentMap = parseLineGroupAgents(encodedMap);
+    // Explicit owner decision: only general-purpose อ๋อย may answer in LINE.
+    // A mistakenly configured specialist/owner-only agent must fail closed.
+    if (!Object.values(agentMap).every(isGeneralLineAssistant)) return null;
     return { secret, config: { token, model, agentMap } };
   } catch {
     return null;
@@ -97,7 +103,8 @@ async function processEvent(
 
   const groupId = event.source?.groupId ?? event.source?.roomId;
   const agentKey = agentForLineGroup(groupId, config.agentMap);
-  if (!groupId || !agentKey) return; // No reply or AI billing for unknown groups/1:1.
+  if (!groupId || !agentKey || !isGeneralLineAssistant(agentKey)) return;
+  // No reply or AI billing for unknown groups/1:1 or unsupported specialists.
 
   const parsed = detectLineTrigger(event.message.text, event.message.mention, destination);
   if (!parsed.triggered) return;
@@ -131,24 +138,12 @@ async function processEvent(
       return;
     }
 
-    const { data: agent, error: agentError } = await admin
-      .from("ai_agents")
-      .select("id,key,name,system_prompt,access")
-      .eq("key", agentKey)
-      .eq("is_active", true)
-      .maybeSingle();
-    if (agentError || !agent) throw new Error("AGENT_UNAVAILABLE");
-
-    // A LINE group must NEVER gain access to owner-only People OS agents.
-    const access = agent.access;
-    if (access && typeof access === "object" && !Array.isArray(access) &&
-        (access as Record<string, unknown>).owner_only === true) {
-      throw new Error("OWNER_ONLY_AGENT_BLOCKED");
-    }
+    // Aoy is an explicitly approved general-purpose assistant. No specialist
+    // agent row, privileged prompt, or company Knowledge Base is loaded.
 
     const prompt = parsed.prompt.slice(0, MAX_PROMPT_LENGTH);
     if (!prompt) {
-      await replyLine(event.replyToken, "พิมพ์คำถามหลังคำว่า ai หรือ อ๋อย ได้เลยครับ", config.token);
+      await replyLine(event.replyToken, `สวัสดีครับ ผม${LINE_GENERAL_ASSISTANT_NAME} ช่วยคิดไอเดีย ตอบคำถาม เขียนข้อความ หรือสรุปงานได้ครับ พิมพ์คำถามหลัง ai หรือ อ๋อย ได้เลย`, config.token);
       await markEvent(admin, eventHash, "completed");
       return;
     }
@@ -161,8 +156,7 @@ async function processEvent(
     const response = await client.messages.create({
       model: config.model,
       max_tokens: 1200,
-      system: agent.system_prompt ||
-        "คุณคือผู้ช่วย AI สำหรับทีม YuenDeaw ตอบเป็นภาษาไทยอย่างกระชับ ช่วยงานที่ได้รับมอบหมาย และอย่าแต่งข้อมูลภายในองค์กรที่ไม่มีหลักฐาน",
+      system: LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT,
       messages: [{ role: "user", content: prompt }],
     });
     const text = response.content
@@ -172,11 +166,12 @@ async function processEvent(
 
     // Log usage metrics only. Never persist raw group messages or LINE tokens.
     await admin.from("ai_usage_logs").insert({
-      agent_id: agent.id,
+      agent_id: null,
       employee_id: null,
       tokens: response.usage.output_tokens,
       meta: {
         source: "line_ai",
+        agent_key: LINE_GENERAL_ASSISTANT_NAME,
         model: config.model,
         event_hash: eventHash,
         group_hash: groupHash,
