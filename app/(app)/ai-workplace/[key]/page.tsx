@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAccessContext } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState, Badge } from "@/components/ui";
 import { Icon } from "@/components/Icon";
@@ -17,7 +18,10 @@ const STARTERS: Record<string, string[]> = {
 
 export default async function AgentChatPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
-  const ctx = (await getAccessContext())!;
+  const ctx = await getAccessContext();
+  if (!ctx) redirect("/login");
+  if (!ctx.isOwner && !ctx.employeeId) redirect("/pending");
+  if (!can(ctx, "ai_workplace", "view")) redirect("/dashboard");
   const supabase = await createClient();
 
   const { data: agent } = await supabase
