@@ -1,0 +1,238 @@
+import Anthropic from "@anthropic-ai/sdk";
+import { after, NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  agentForLineGroup,
+  detectLineTrigger,
+  opaqueLineEventHash,
+  parseLineGroupAgents,
+  verifyLineSignature,
+  type LineMention,
+} from "@/lib/line-ai/webhook";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
+const REPLY_API = "https://api.line.me/v2/bot/message/reply";
+const MAX_EVENTS_PER_WEBHOOK = 20;
+const MAX_PROMPT_LENGTH = 2500;
+const MAX_PER_GROUP_PER_MINUTE = 8;
+
+type LineTextEvent = {
+  type?: string;
+  webhookEventId?: string;
+  replyToken?: string;
+  source?: { type?: string; groupId?: string; roomId?: string };
+  message?: { type?: string; text?: string; mention?: LineMention };
+};
+type LinePayload = { destination?: string; events?: LineTextEvent[] };
+type LineConfig = {
+  token: string;
+  agentMap: Record<string, string>;
+  model: string;
+};
+type Admin = ReturnType<typeof createAdminClient>;
+
+/** Fail closed until a separately approved LINE channel is configured. */
+function configOrNull(): { secret: string; config: LineConfig } | null {
+  if (process.env.LINE_AI_ENABLED !== "true") return null;
+  const secret = process.env.LINE_AI_CHANNEL_SECRET;
+  const token = process.env.LINE_AI_CHANNEL_ACCESS_TOKEN;
+  const model = process.env.LINE_AI_MODEL;
+  const encodedMap = process.env.LINE_AI_GROUP_AGENTS_JSON;
+  if (!secret || !token || !model || !encodedMap || !process.env.ANTHROPIC_API_KEY) return null;
+  try {
+    const agentMap = parseLineGroupAgents(encodedMap);
+    return { secret, config: { token, model, agentMap } };
+  } catch {
+    return null;
+  }
+}
+
+async function replyLine(replyToken: string, text: string, token: string): Promise<void> {
+  const reply = text.trim().slice(0, 4900) || "ยังไม่สามารถสร้างคำตอบได้ กรุณาลองใหม่อีกครั้ง";
+  const res = await fetch(REPLY_API, {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + token,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      replyToken,
+      messages: [{ type: "text", text: reply }],
+    }),
+    signal: AbortSignal.timeout(8500),
+  });
+  if (!res.ok) throw new Error("LINE_REPLY_STATUS_" + res.status);
+}
+
+async function markEvent(
+  admin: Admin,
+  eventHash: string,
+  status: "completed" | "failed" | "rate_limited",
+  errorCode?: string,
+): Promise<void> {
+  await admin.from("ai_line_webhook_events").update({
+    status,
+    completed_at: new Date().toISOString(),
+    error_code: errorCode ?? null,
+  }).eq("event_hash", eventHash);
+}
+
+/**
+ * The only external identity grant is a verified LINE signature AND an
+ * allowlisted group/room. We never trust a client-provided People OS user ID.
+ */
+async function processEvent(
+  event: LineTextEvent,
+  destination: string | undefined,
+  config: LineConfig,
+): Promise<void> {
+  if (event.type !== "message" || event.message?.type !== "text") return;
+  if (typeof event.message.text !== "string" ||
+      typeof event.replyToken !== "string" ||
+      typeof event.webhookEventId !== "string" ||
+      event.webhookEventId.length > 140) return;
+
+  const groupId = event.source?.groupId ?? event.source?.roomId;
+  const agentKey = agentForLineGroup(groupId, config.agentMap);
+  if (!groupId || !agentKey) return; // No reply or AI billing for unknown groups/1:1.
+
+  const parsed = detectLineTrigger(event.message.text, event.message.mention, destination);
+  if (!parsed.triggered) return;
+
+  const eventHash = opaqueLineEventHash(event.webhookEventId);
+  const groupHash = opaqueLineEventHash(groupId);
+  const admin = createAdminClient();
+
+  // Unique event hashes prevent replaying the same LINE webhook/AI request.
+  // Deploy the gated database migration BEFORE enabling the webhook.
+  const { data: claimed, error: claimError } = await admin
+    .from("ai_line_webhook_events")
+    .upsert(
+      { event_hash: eventHash, group_hash: groupHash, agent_key: agentKey, status: "processing" },
+      { onConflict: "event_hash", ignoreDuplicates: true },
+    )
+    .select("event_hash");
+  if (claimError) throw new Error("EVENT_CLAIM_FAILED");
+  if (!claimed?.length) return;
+
+  try {
+    const { count, error: countError } = await admin
+      .from("ai_line_webhook_events")
+      .select("event_hash", { head: true, count: "exact" })
+      .eq("group_hash", groupHash)
+      .gte("received_at", new Date(Date.now() - 60_000).toISOString());
+    if (countError) throw new Error("RATE_LIMIT_READ_FAILED");
+    if ((count ?? 0) > MAX_PER_GROUP_PER_MINUTE) {
+      await markEvent(admin, eventHash, "rate_limited");
+      await replyLine(event.replyToken, "ตอนนี้มีคำถามเข้ามาหลายรายการ กรุณาลองใหม่ในอีกสักครู่", config.token);
+      return;
+    }
+
+    const { data: agent, error: agentError } = await admin
+      .from("ai_agents")
+      .select("id,key,name,system_prompt,access")
+      .eq("key", agentKey)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (agentError || !agent) throw new Error("AGENT_UNAVAILABLE");
+
+    // A LINE group must NEVER gain access to owner-only People OS agents.
+    const access = agent.access;
+    if (access && typeof access === "object" && !Array.isArray(access) &&
+        (access as Record<string, unknown>).owner_only === true) {
+      throw new Error("OWNER_ONLY_AGENT_BLOCKED");
+    }
+
+    const prompt = parsed.prompt.slice(0, MAX_PROMPT_LENGTH);
+    if (!prompt) {
+      await replyLine(event.replyToken, "พิมพ์คำถามหลังคำว่า ai หรือ อ๋อย ได้เลยครับ", config.token);
+      await markEvent(admin, eventHash, "completed");
+      return;
+    }
+
+    const client = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      maxRetries: 0,
+      timeout: 16_000,
+    });
+    const response = await client.messages.create({
+      model: config.model,
+      max_tokens: 1200,
+      system: agent.system_prompt ||
+        "คุณคือผู้ช่วย AI สำหรับทีม YuenDeaw ตอบเป็นภาษาไทยอย่างกระชับ ช่วยงานที่ได้รับมอบหมาย และอย่าแต่งข้อมูลภายในองค์กรที่ไม่มีหลักฐาน",
+      messages: [{ role: "user", content: prompt }],
+    });
+    const text = response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === "text")
+      .map((block) => block.text)
+      .join("\n");
+
+    // Log usage metrics only. Never persist raw group messages or LINE tokens.
+    await admin.from("ai_usage_logs").insert({
+      agent_id: agent.id,
+      employee_id: null,
+      tokens: response.usage.output_tokens,
+      meta: {
+        source: "line_ai",
+        model: config.model,
+        event_hash: eventHash,
+        group_hash: groupHash,
+        input_tokens: response.usage.input_tokens,
+      },
+    });
+
+    await replyLine(event.replyToken, text, config.token);
+    await markEvent(admin, eventHash, "completed");
+  } catch {
+    // No raw message, reply token, group ID, or credentials in logs.
+    await markEvent(admin, eventHash, "failed", "PROCESSING_FAILED");
+    try {
+      await replyLine(event.replyToken, "ผู้ช่วย AI ขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง", config.token);
+    } catch {
+      // LINE reply tokens can expire or be consumed; avoid duplicate replies.
+    }
+  }
+}
+
+export async function POST(request: Request) {
+  const setup = configOrNull();
+  if (!setup) {
+    return NextResponse.json({ error: "LINE_AI_NOT_CONFIGURED" }, { status: 503 });
+  }
+  const rawBody = await request.text();
+  if (rawBody.length > 64_000) {
+    return NextResponse.json({ error: "PAYLOAD_TOO_LARGE" }, { status: 413 });
+  }
+  if (!verifyLineSignature(rawBody, request.headers.get("x-line-signature"), setup.secret)) {
+    return NextResponse.json({ error: "INVALID_SIGNATURE" }, { status: 401 });
+  }
+
+  let payload: LinePayload;
+  try {
+    payload = JSON.parse(rawBody) as LinePayload;
+  } catch {
+    return NextResponse.json({ error: "BAD_PAYLOAD" }, { status: 400 });
+  }
+  if (!Array.isArray(payload.events) || payload.events.length > MAX_EVENTS_PER_WEBHOOK) {
+    return NextResponse.json({ error: "BAD_EVENTS" }, { status: 400 });
+  }
+
+  // LINE Developers' Verify action sends events: [] and expects HTTP 200.
+  if (!payload.events.length) return NextResponse.json({ ok: true });
+
+  after(async () => {
+    for (const event of payload.events ?? []) {
+      try {
+        await processEvent(event, payload.destination, setup.config);
+      } catch {
+        // Background processing errors are recorded without logging user data.
+        console.error("[line-ai] webhook event failed");
+      }
+    }
+  });
+
+  return NextResponse.json({ ok: true });
+}
