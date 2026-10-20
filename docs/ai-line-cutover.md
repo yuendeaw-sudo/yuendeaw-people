@@ -1,11 +1,13 @@
 # Phase AI-2 — Keep LINE AI, retire Discord, remove legacy Supabase dependency
 
+> **Critical status update — 2026-10-20:** The owner confirmed manually deleting the Supabase project `ai-workspace` (`qbkrsexjksmjnrevtrnn`). Supabase no longer lists this project. Its database, Auth and associated hosted backups are unavailable; according to Supabase, project deletion is irreversible. The old Vercel website still exists, but its LINE webhook and login refer to a missing Supabase backend. **Do not use the old webhook URL as a functioning rollback target.** No downloadable external backup has been verified. PR #3 and People OS Supabase remain unaffected; PR #3 is still Draft and its Production Webhook URL has not been switched.
+
 ## Decision (owner, 2026-10-20)
 - **Keep LINE AI Bot**. Current LINE Developers Messaging API webhook is:
   https://ai-workspace-swart.vercel.app/api/line
 - **Retire Discord Bot**; there is no requirement to migrate slash commands, four existing channel mappings, or Discord user integrations.
-- Do not stop or delete legacy Supabase project `qbkrsexjksmjnrevtrnn` until LINE cutover, backup and restore checks pass.
-- Legacy ai-workspace Production and LINE Developers webhook settings are **not changed by this Draft PR**.
+- The legacy Supabase project has **already been deleted by the owner**. Do not attempt transfer/pause or claim its database is recoverable. Check separately for any user-downloaded offline backup.
+- Legacy Vercel project and LINE Developers webhook settings are **not changed by this Draft PR**; the old database-backed service is broken due to deletion.
 
 ## AI bot persona — owner decision (2026-10-20)
 The owner confirmed that **"อ๋อย" is a general-purpose AI assistant**, not a
@@ -41,7 +43,7 @@ File: `supabase/migrations/0022_ai_line_webhook_dedupe.sql`.
 
 ## Server-only Vercel environment variables
 Configure on **People OS** project; use the dedicated LINE AI channel's secret/token
-from the old ai-workspace environment **securely inside Vercel**, never paste them
+from the still-existing legacy **Vercel project configuration** (not the deleted Supabase database) **securely inside Vercel**, never paste them
 into GitHub, chat, browser console, or a URL query string.
 
 | Name | Scope / purpose |
@@ -79,7 +81,7 @@ to a Production/HR/Sales/owner-only employee Agent; the existing legacy
    old conversation history into People OS.
 
 ## Live LINE cutover (owner authorization at this gate)
-1. Ensure PR2 People OS AI Workplace and PR3 AI LINE endpoint have passed QA.
+1. Ensure PR2 People OS AI Workplace and PR3 AI LINE endpoint have passed QA. The legacy LINE Group ID cannot be recovered through the deleted database; recover it through an owner-held record or a signed LINE Webhook event in a controlled enrollment process.
    Deploy approved code and migration, configure real Production server-only variables.
 2. Visit **LINE Developers → AI Messaging API channel → Messaging API → Webhook URL**.
    Switch **from**
@@ -89,31 +91,23 @@ to a Production/HR/Sales/owner-only employee Agent; the existing legacy
 3. Use LINE Developers **Verify** and send an approved test message. Confirm exactly
    one bot response, no duplicate usage, no secret in logs, and no disruption to
    Communeed's separate LINE OA.
-4. Roll back by restoring the exact old URL while legacy ai-workspace remains online;
-   do not remove the old credentials until this rollback window closes.
-5. After verification, approve retirement of the legacy URL and ensure no other
-   traffic depends on that host.
+4. **Important: the old URL is not a valid working rollback** because its Supabase project was deleted. Before switching, have a known-good People OS deployment and the ability to roll back *its code or environment*. If the new webhook is unhealthy, keep or restore the last verified People OS deployment, not the broken legacy endpoint. Temporarily disable bot responses if no healthy version is available.
+5. After verifying the new endpoint, disconnect the old URL and revoke legacy credentials only after the provider-level cleanup. Do not delete the remaining Vercel project until domain and backup decisions are reviewed.
 
 ## Discord retirement (NO migration)
 - In Discord Developer Portal, inspect the old AI application and remove/disable
   the slash commands or app installation where appropriate; clear the
   **Interactions Endpoint URL** after confirming the application does not serve
   other workflows. This is a provider action, not a database change.
-- Keep historical Discord channel data in the ai-workspace archive until
-  the backup and restore phase; do not export member IDs into GitHub.
-- Then retire/revoke the old Discord bot credentials from the legacy Vercel
-  project after assessing rollback and unrelated usages. No production
-  Discord credentials are touched by this PR.
-- If you no longer need the Discord application at all, optionally delete
-  the old Developer Portal application **only after its data is archived**.
+- Supabase-hosted legacy Discord channel mappings were removed with the deleted project; restore history only if a separate external backup exists. Do not export member IDs into GitHub.
+- Retire/revoke the old Discord bot credentials from the remaining legacy Vercel project after checking any unrelated uses. No Production Discord credentials are changed by this PR.
+- If you no longer need the Discord application at all, optionally delete the old Developer Portal application after assessing other users and integrations.
 
-## Phase AI-3 / AI-4
-- Archive full legacy DB and Storage; verify restore. No historic chat data
-  deleted or moved by this PR.
-- Move eligible legacy Supabase project into approved Free organization,
-  then pause; Pro projects cannot be directly paused.
-- Reconfirm STANd, Communeed, YuenDeaw People and LINE AI remain healthy,
-  and check whether Compute charges stop.
+## Phase AI-3 / AI-4 — Updated after user deletion
+- **AI-3 data recovery:** Supabase-hosted DB/Storage and built-in backups are no longer available after deletion. Ask the owner whether a separate downloaded database/Storage backup exists; do not assert any old chat, document or group mapping was preserved. GitHub source/migrations remain for reconstructing app behavior, not the lost records.
+- **AI-4 Compute:** there is no ai-workspace Supabase project left to transfer or pause; future Compute for that project ends with deletion, though current-cycle charges before deletion may remain.
+- **New release path:** configure credentials from retained legacy Vercel project, obtain LINE group ID from a correctly signed LINE provider event during a controlled QA enrollment or separate owner-held record, verify the new People OS webhook, then approve production cutover.
+- Reconfirm STANd, Communeed, YuenDeaw People and LINE AI health; check the next billing cycle for reduced Compute.
 
 **Release gate:** Do not merge or change LINE Developers webhook URL, Discord
 application, Production SQL or Vercel Production keys automatically. 
