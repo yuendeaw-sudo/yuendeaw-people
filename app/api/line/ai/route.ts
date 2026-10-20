@@ -11,6 +11,8 @@ import {
   LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT,
   LINE_GENERAL_ASSISTANT_NAME,
   LINE_GENERAL_ASSISTANT_KEY,
+  isLineGroupDiscoveryCommand,
+  isWellFormedLineGroupId,
   type LineMention,
 } from "@/lib/line-ai/webhook";
 
@@ -36,20 +38,34 @@ type LineConfig = {
   agentMap: Record<string, string>;
   model: string;
 };
+
+type LineSetup =
+  | { secret: string; token: string; mode: "group-discovery" }
+  | { secret: string; token: string; mode: "assistant"; config: LineConfig };
 type Admin = ReturnType<typeof createAdminClient>;
 
-/** Fail closed until a separately approved LINE channel is configured. */
-function configOrNull(): { secret: string; config: LineConfig } | null {
-  if (process.env.LINE_AI_ENABLED !== "true") return null;
+/** Never start LINE AI without its separate channel secret, token and mode. */
+function configOrNull(): LineSetup | null {
   const secret = process.env.LINE_AI_CHANNEL_SECRET;
   const token = process.env.LINE_AI_CHANNEL_ACCESS_TOKEN;
+  if (!secret || !token) return null;
+
+  const assistantEnabled = process.env.LINE_AI_ENABLED === "true";
+  const discoveryEnabled = process.env.LINE_AI_GROUP_DISCOVERY_MODE === "true";
+
+  // Discovery responds with the requesting group ID only. It must never
+  // overlap with AI access or permit unapproved groups to query a model.
+  if (assistantEnabled && discoveryEnabled) return null;
+  if (discoveryEnabled) return { secret, token, mode: "group-discovery" };
+  if (!assistantEnabled) return null;
+
   const model = process.env.LINE_AI_MODEL;
   const encodedMap = process.env.LINE_AI_GROUP_AGENTS_JSON;
-  if (!secret || !token || !model || !encodedMap || !process.env.ANTHROPIC_API_KEY) return null;
+  if (!model || !encodedMap || !process.env.ANTHROPIC_API_KEY) return null;
+
   try {
-    // The owner wants only the standalone Aoy generalist (not specialist agents).
     const agentMap = parseGeneralLineGroupAgents(encodedMap);
-    return { secret, config: { token, model, agentMap } };
+    return { secret, token, mode: "assistant", config: { token, model, agentMap } };
   } catch {
     return null;
   }
@@ -191,6 +207,28 @@ async function processEvent(
   }
 }
 
+/**
+ * A signed, opt-in LINE-only discovery flow for rebuilding the deleted group
+ * mapping. It discloses an ID only within its own LINE group and never reads
+ * People OS data, calls an AI model, or stores identifiers in Supabase/logs.
+ */
+async function handleGroupDiscovery(event: LineTextEvent, token: string): Promise<void> {
+  if (event.type !== "message" || event.message?.type !== "text") return;
+  if (typeof event.replyToken !== "string" || typeof event.message.text !== "string") return;
+  if (!isLineGroupDiscoveryCommand(event.message.text)) return;
+
+  const groupId = event.source?.groupId ?? event.source?.roomId;
+  if (!groupId || !isWellFormedLineGroupId(groupId)) return;
+
+  await replyLine(
+    event.replyToken,
+    "รหัสกลุ่ม LINE ของคุณคือ:\n" + groupId +
+      "\n\nรหัสนี้ใช้ลงทะเบียนอ๋อยในกลุ่มที่อนุญาตเท่านั้น " +
+      "ตอนนี้อ๋อยยังไม่เปิดใช้งาน AI และไม่เก็บข้อความของคุณครับ",
+    token,
+  );
+}
+
 export async function POST(request: Request) {
   const setup = configOrNull();
   if (!setup) {
@@ -220,7 +258,11 @@ export async function POST(request: Request) {
   after(async () => {
     for (const event of payload.events ?? []) {
       try {
-        await processEvent(event, payload.destination, setup.config);
+        if (setup.mode === "group-discovery") {
+          await handleGroupDiscovery(event, setup.token);
+        } else {
+          await processEvent(event, payload.destination, setup.config);
+        }
       } catch {
         // Background processing errors are recorded without logging user data.
         console.error("[line-ai] webhook event failed");
