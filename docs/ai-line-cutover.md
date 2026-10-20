@@ -4,7 +4,7 @@
 - **Keep LINE AI Bot**. Current LINE Developers Messaging API webhook is:
   https://ai-workspace-swart.vercel.app/api/line
 - **Retire Discord Bot**; there is no requirement to migrate slash commands, four existing channel mappings, or Discord user integrations.
-- Do not stop or delete legacy Supabase project \`qbkrsexjksmjnrevtrnn\` until LINE cutover, backup and restore checks pass.
+- Do not stop or delete legacy Supabase project `qbkrsexjksmjnrevtrnn` until LINE cutover, backup and restore checks pass.
 - Legacy ai-workspace Production and LINE Developers webhook settings are **not changed by this Draft PR**.
 
 ## AI bot persona — owner decision (2026-10-20)
@@ -20,21 +20,21 @@ Production Assistant, HR assistant, or any other department-specific agent.
 
 ## Replacement architecture
 - New endpoint: https://people.yuendeaw.com/api/line/ai (only after this PR is reviewed and merged).
-- It runs on existing YuenDeaw People (Vercel project \`yuendeaw-people\` / Supabase project \`bhvbkqcporxbfobehvns\`).
+- It runs on existing YuenDeaw People (Vercel project `yuendeaw-people` / Supabase project `bhvbkqcporxbfobehvns`).
 - It does not create new Supabase projects, members or global AI workspaces.
-- Trigger words preserved: \`ai\`, \`อ๋อย\`, \`น้องอ๋อย\`, and genuine @bot mention.
-- Accepts only configured LINE Group/room IDs. Every approved group maps to the virtual \`general_assistant\` persona. The bot does not load or expose employee/owner-only \`ai_agents\` prompts.
+- Trigger words preserved: `ai`, `อ๋อย`, `น้องอ๋อย`, and genuine @bot mention.
+- Accepts only configured LINE Group/room IDs. Every approved group maps to the virtual `general_assistant` persona. The bot does not load or expose employee/owner-only `ai_agents` prompts.
 - Verifies raw-body LINE HMAC-SHA256 in constant time before reading events; does not trust the caller's identity or free-text chosen agent name.
-- Dedupe on hashed \`webhookEventId\`, limit eight requests per group per 60 seconds, and store only opaque event/group hashes and token usage metrics (no raw message text or LINE reply tokens).
-- LINE's verify request (\`events: []\`) must return HTTP 200 after the private credentials are supplied and signature is valid.
+- Dedupe on hashed `webhookEventId`, limit eight requests per group per 60 seconds, and store only opaque event/group hashes and token usage metrics (no raw message text or LINE reply tokens).
+- LINE's verify request (`events: []`) must return HTTP 200 after the private credentials are supplied and signature is valid.
 - LINE replies via channel-specific access token. Provider credentials remain server-side in Vercel, never in Github / chat / client env vars.
-- Uses the **existing** People OS Anthropic key with a separately selected \`LINE_AI_MODEL\`, max response length to control spend.
+- Uses the **existing** People OS Anthropic key with a separately selected `LINE_AI_MODEL`, max response length to control spend.
 - No Discord route or Discord credentials are copied.
 
 ## Required database migration — NOT yet applied
-File: \`supabase/migrations/0022_ai_line_webhook_dedupe.sql\`.
-- Add small \`public.ai_line_webhook_events\` table with primary-key dedupe.
-- Enable RLS and revoke ordinary user access. Only \`service_role\` can read/write.
+File: `supabase/migrations/0022_ai_line_webhook_dedupe.sql`.
+- Add small `public.ai_line_webhook_events` table with primary-key dedupe.
+- Enable RLS and revoke ordinary user access. Only `service_role` can read/write.
 - Apply to **People OS Supabase only**, not ai-workspace, STANd or Communeed.
 - Perform postcheck on table, index, RLS, grants; use a rollback-only duplicate-event test before enabling the bot.
 - This migration and any Production rollout require owner authorization; GitHub PR alone does not run it.
@@ -46,25 +46,25 @@ into GitHub, chat, browser console, or a URL query string.
 
 | Name | Scope / purpose |
 |---|---|
-| \`LINE_AI_ENABLED\` | \`true\` ONLY after cutover prerequisites, otherwise fail closed |
-| \`LINE_AI_CHANNEL_SECRET\` | Secret belonging to the **exact existing AI LINE Messaging API channel** |
-| \`LINE_AI_CHANNEL_ACCESS_TOKEN\` | Access token for the **same** channel |
-| \`LINE_AI_GROUP_AGENTS_JSON\` | Server-side map from approved group/room ID to the literal \`general_assistant\` only |
-| \`LINE_AI_MODEL\` | An available Anthropic model chosen for cost/quality |
-| \`ANTHROPIC_API_KEY\` | Existing People OS server-side secret, already configured |
+| `LINE_AI_ENABLED` | `true` ONLY after cutover prerequisites, otherwise fail closed |
+| `LINE_AI_CHANNEL_SECRET` | Secret belonging to the **exact existing AI LINE Messaging API channel** |
+| `LINE_AI_CHANNEL_ACCESS_TOKEN` | Access token for the **same** channel |
+| `LINE_AI_GROUP_AGENTS_JSON` | Server-side map from approved group/room ID to the literal `general_assistant` only |
+| `LINE_AI_MODEL` | An available Anthropic model chosen for cost/quality |
+| `ANTHROPIC_API_KEY` | Existing People OS server-side secret, already configured |
 
 Example mapping format only (do not use fake IDs in Production):
-\`\`\`json
+```json
 {"C_REPLACE_WITH_REAL_GROUP_ID":"general_assistant"}
-\`\`\`
+```
 This bot does not use People OS specialist agents. Do not map the LINE channel
 to a Production/HR/Sales/owner-only employee Agent; the existing legacy
-\`line_group_links\` team/agent IDs are not used in the new system.
+`line_group_links` team/agent IDs are not used in the new system.
 
 **Do NOT copy Communeed's LINE OA booking secrets** into this AI Bot.
 
 ## Preview test plan (before touching provider webhook)
-1. Run \`npm run test:ai-line\`, Next.js lint/type check and Vercel Preview build on the PR head.
+1. Run `npm run test:ai-line`, Next.js lint/type check and Vercel Preview build on the PR head.
 2. With **fake Preview-only** LINE variables, check:
    - unsigned / invalid-signature POST → 401 (provided server is configured);
    - valid signed empty-event POST → 200;
@@ -72,7 +72,7 @@ to a Production/HR/Sales/owner-only employee Agent; the existing legacy
    - a configuration mapping to a specialist agent must return 503; only `general_assistant` is allowed;
    - replayed valid event cannot create duplicate claims (with DB test table in place).
 3. With real, **server-only Preview** configuration and approved QA group, run one
-   owner-approved real LINE message via \`ai ...\`, verify one reply, DB event and
+   owner-approved real LINE message via `ai ...`, verify one reply, DB event and
    People OS usage log; test @mention and unknown group rejection.
 4. Test in the same channel and LINE group that used the old bot. Compare answer
    quality and model cost; this implementation intentionally does not transfer
@@ -83,9 +83,9 @@ to a Production/HR/Sales/owner-only employee Agent; the existing legacy
    Deploy approved code and migration, configure real Production server-only variables.
 2. Visit **LINE Developers → AI Messaging API channel → Messaging API → Webhook URL**.
    Switch **from**
-   \`https://ai-workspace-swart.vercel.app/api/line\`
+   `https://ai-workspace-swart.vercel.app/api/line`
    **to**
-   \`https://people.yuendeaw.com/api/line/ai\`.
+   `https://people.yuendeaw.com/api/line/ai`.
 3. Use LINE Developers **Verify** and send an approved test message. Confirm exactly
    one bot response, no duplicate usage, no secret in logs, and no disruption to
    Communeed's separate LINE OA.
