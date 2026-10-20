@@ -64,6 +64,19 @@ export function parseLineGroupAgents(value: string): Record<string, string> {
   return result;
 }
 
+/**
+ * The owner chose one generalist Aoy bot for every approved LINE group.
+ * A specialist mapping is a configuration error, not permission to broaden
+ * external LINE access to People OS department/owner agents.
+ */
+export function parseGeneralLineGroupAgents(value: string): Record<string, string> {
+  const map = parseLineGroupAgents(value);
+  if (!Object.values(map).every(isGeneralLineAssistant)) {
+    throw new Error("LINE AI permits only general_assistant");
+  }
+  return map;
+}
+
 export function agentForLineGroup(
   groupId: string | undefined,
   allowlist: Record<string, string>,
