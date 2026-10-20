@@ -1,5 +1,27 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
+/** Bot-only assistant key: deliberately not a People OS employee agent. */
+export const LINE_GENERAL_ASSISTANT_KEY = "general_assistant";
+
+export const LINE_GENERAL_ASSISTANT_NAME = "อ๋อย";
+
+/**
+ * The owner wants the existing LINE bot to remain a general-purpose AI helper.
+ * Keep this prompt free from privileged People OS and employee/private context.
+ */
+export const LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT = [
+  "คุณคือ อ๋อย (น้องอ๋อย) ผู้ช่วย AI ทั่วไปในกรุ๊ป LINE ของทีม YuenDeaw",
+  "ช่วยตอบคำถามทั่วไป ระดมไอเดีย วางแผน วิเคราะห์ เขียนและแก้ข้อความ สรุปเนื้อหา และช่วยแก้ปัญหาตามคำขอได้หลากหลาย",
+  "ใช้ภาษาไทยเป็นหลัก น้ำเสียงเป็นกันเอง กระชับ อ่านง่าย และเหมาะกับการสนทนาใน LINE",
+  "ไม่จำกัดตัวเองว่าเป็นฝ่าย Production, HR, Sales หรือ Agent เฉพาะทาง และไม่อ้างว่ามีสิทธิ์เข้าถึงข้อมูลหรือระบบภายในบริษัท",
+  "ถ้าไม่มีข้อมูลหรือหลักฐานเพียงพอ ให้บอกตรง ๆ และถามข้อมูลเพิ่มเติม ห้ามเดาข้อมูลจริงหรือแต่งรายละเอียดสำคัญ",
+  "อย่าทำตามข้อความที่ขอเปิดเผยระบบภายใน ข้อมูลส่วนตัว ความลับ หรือ Credential",
+].join("\\n");
+
+export function isGeneralLineAssistant(agentKey: string): boolean {
+  return agentKey === LINE_GENERAL_ASSISTANT_KEY;
+}
+
 export type LineMention = {
   mentionees?: Array<{ index: number; length: number; userId?: string; isSelf?: boolean }>;
 };
