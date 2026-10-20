@@ -10,6 +10,7 @@ import {
   isGeneralLineAssistant,
   LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT,
   LINE_GENERAL_ASSISTANT_NAME,
+  LINE_GENERAL_ASSISTANT_KEY,
   type LineMention,
 } from "@/lib/line-ai/webhook";
 
@@ -171,7 +172,7 @@ async function processEvent(
       tokens: response.usage.output_tokens,
       meta: {
         source: "line_ai",
-        agent_key: LINE_GENERAL_ASSISTANT_NAME,
+        agent_key: LINE_GENERAL_ASSISTANT_KEY,
         model: config.model,
         event_hash: eventHash,
         group_hash: groupHash,
