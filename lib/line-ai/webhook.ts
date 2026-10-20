@@ -111,6 +111,20 @@ export function detectLineTrigger(
   return { triggered: false, prompt: "" };
 }
 
+/**
+ * Read-only setup command for groups whose ID was stored in a now-deleted
+ * Supabase project. The user must explicitly ask from within that LINE group.
+ * Never run this during the normal assistant mode.
+ */
+export function isLineGroupDiscoveryCommand(value: string): boolean {
+  const input = value.trim().replace(/\s+/g, " ");
+  return /^(?:ai|อ๋อย|น้องอ๋อย)\s+(?:group[\s-]?id|รหัสกลุ่ม|id\s*กลุ่ม|หมายเลขกลุ่ม)$/i.test(input);
+}
+
+export function isWellFormedLineGroupId(value: string): boolean {
+  return /^[CR][A-Za-z0-9_-]{8,100}$/.test(value);
+}
+
 export function opaqueLineEventHash(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
