@@ -4,6 +4,7 @@ import { createHmac } from "node:crypto";
 import {
   verifyLineSignature,
   parseLineGroupAgents,
+  parseGeneralLineGroupAgents,
   agentForLineGroup,
   detectLineTrigger,
   opaqueLineEventHash,
@@ -39,6 +40,20 @@ test("LINE group mapping is strict and only allows explicit group IDs", () => {
   assert.throws(() => parseLineGroupAgents('{"__proto__":"admin"}'));
   assert.throws(() => parseLineGroupAgents("{}"));
   assert.throws(() => parseLineGroupAgents('{"C1234567890abcdef":"bad-agent!"}'));
+});
+
+test("general LINE configuration rejects all specialist agent mappings", () => {
+  const allowed = parseGeneralLineGroupAgents(JSON.stringify({
+    [groupA]: "general_assistant",
+  }));
+  assert.equal(agentForLineGroup(groupA, allowed), "general_assistant");
+  assert.throws(() => parseGeneralLineGroupAgents(JSON.stringify({
+    [groupA]: "production_assistant",
+  })));
+  assert.throws(() => parseGeneralLineGroupAgents(JSON.stringify({
+    [groupA]: "general_assistant",
+    [groupB]: "sales_proposal",
+  })));
 });
 
 test("Aoy is a general-purpose assistant, not a department-specific agent", () => {
