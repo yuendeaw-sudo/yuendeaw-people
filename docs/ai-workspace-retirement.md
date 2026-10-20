@@ -41,6 +41,13 @@ Stop billed Supabase Compute for `ai-workspace` (`qbkrsexjksmjnrevtrnn`) **witho
 
 **No external developer-portal write or webhook removal has occurred.** No user data or secrets were copied.
 
+## Owner decision — 2026-10-20 (confirmed)
+- LINE AI Bot must remain operational. Owner confirmed LINE Developers Webhook URL: https://ai-workspace-swart.vercel.app/api/line
+- Discord Bot is **not needed**; do not port the Discord application, slash commands or permissions to People OS. Provider-side disconnection and legacy credentials retirement remain pending; simply omitting it from a new codebase does not deactivate the existing Discord application.
+- The replacement LINE endpoint is being developed independently under **[PR #3](https://github.com/yuendeaw-sudo/yuendeaw-people/pull/3)**: \`https://people.yuendeaw.com/api/line/ai\`. It is currently **Preview only, disabled/fail-closed without the dedicated LINE channel secrets**, and has an additive SQL migration requiring separate review.
+- Do **not** change the actual LINE Developers Webhook URL, Discord Developer settings, Production Vercel secrets, legacy Supabase organization or historical chat data based solely on a Draft PR.
+- LINE-specific cutover, QA, backup/rollback and Discord retirement instructions: \`docs/ai-line-cutover.md\` in the PR #3 branch.
+
 ## Phase 3 — Archives and recovery
 - Existing `ai-workspace` Supabase: 16 public tables; AI chat messages, documents, usage history, linked bot channels.
 - [ ] Obtain verified full Postgres backup/export, including Auth identities/policies/functions/extensions and migration history; redact confidential info and store privately, never in GitHub.
