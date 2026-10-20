@@ -70,7 +70,7 @@ export function detectLineTrigger(
     }
     return { triggered: true, prompt: cleaned.trim() };
   }
-  const prefix = text.match(/^\s*(?:น้องอ๋อย|อ๋อย|ai)(?=\s|[:,：]|$)[\s,:：]*(.*)$/is);
+  const prefix = text.match(/^\s*(?:น้องอ๋อย|อ๋อย|ai)(?=\s|[:,：]|$)[\s,:：]*([\s\S]*)$/i);
   if (prefix) return { triggered: true, prompt: prefix[1].trim() };
   if (/น้องอ๋อย|อ๋อย/.test(text)) return { triggered: true, prompt: text.trim() };
   return { triggered: false, prompt: "" };
