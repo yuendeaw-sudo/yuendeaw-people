@@ -6,7 +6,7 @@ Stop billed Supabase Compute for `ai-workspace` (`qbkrsexjksmjnrevtrnn`) **witho
 ## Phase 1 — People OS replacement (current Draft PR)
 - [x] Replace People OS `/ai-workplace` iframe to `https://ai.yuendeaw.com` with same-site, signed-in agent launcher.
 - [x] Load existing `public.ai_agents` rows from **People OS Supabase** (`bhvbkqcporxbfobehvns`), preserving the `owner_only` filter.
-- [ ] Check build/typecheck and Preview with authorized staff.
+- [x] Vercel latest Preview compiled and is READY; unauthenticated HTTP smoke verified: launcher and agent detail both redirect to /login (307), chat POST denies with 401. **Still pending authenticated user QA**.
 - [ ] Verify each native `/ai-workplace/[key]` route and `/api/ai/chat` on real, permitted test account.
 - [ ] Confirm owner-only agents are unavailable to other employees.
 - [ ] Deploy only after approval and test native app navigation / mobile display. Old iframe still serves Production until merged.
@@ -18,6 +18,28 @@ Stop billed Supabase Compute for `ai-workspace` (`qbkrsexjksmjnrevtrnn`) **witho
 - [ ] Confirm LINE Developers and Discord Developer Portal webhook/Interactions destinations and active usage; **do not disable or redirect without explicit owner approval**.
 - [ ] For still-needed workflows, implement/test equivalent functionality on the chosen owner-approved host and database (likely People OS); migrate only necessary agent/permissions mappings.
 - [ ] For no-longer-used webhooks, revoke or disconnect deliberately, without breaking unrelated LINE OA booking integrations.
+
+## Phase 2 dependency inventory — verified 2026-10-20
+
+| Inbound integration | Existing code/host | DB usage | Decision |
+|---|---|---|---|
+| Discord HTTP interactions | Legacy `ai-workspace/app/api/discord/route.ts` on `ai.yuendeaw.com/api/discord` **if** developer portal currently points there (unverified) | `discord_channel_links` (4 configured); agents, conversations, messages, usage_logs, tasks | Do not switch/delete endpoint until application ID, developer-portal Interactions URL and actual activity verified |
+| LINE Messaging API | Legacy `ai-workspace/app/api/line/route.ts` on `ai.yuendeaw.com/api/line` **if** LINE Developers webhook points there (unverified) | `line_group_links` (1 configured); agents, conversations, messages, usage_logs | Do not disconnect channel or reuse LINE OA credentials from Communeed without explicit mapping |
+| AI Workplace web | Legacy `ai.yuendeaw.com` embedded in People OS | Legacy Auth/AI data, AI provider APIs | Replacement prepared in this PR using People OS native 12-agent catalog and `/api/ai/chat` (not deployed) |
+| People OS internal agent chat | `/ai-workplace/[key]` and `/api/ai/chat` | People OS `ai_agents`, `ai_usage_logs` | Already independent of legacy Supabase; PR now enforces `ai_workplace:view` in launcher, detail page, and API, as well as owner-only agents |
+
+**Observability:** Vercel ai-workspace runtime logs for a seven-day lookback show only two requests to `/`; none surfaced for `/api/line` or `/api/discord`. This does **not** prove external webhook configuration, deliveries or zero usage outside the retention window. Last stored AI usage was 2026-07-03 in the previous read-only inspection. No credentials or channel IDs were exported.
+
+### Bot cutover or retirement gate
+
+1. In LINE Developers **Messaging API**, check webhook URL for the AI channel, not the Communeed studio booking channel. Record whether it points to legacy `/api/line`; do not send or store access tokens.
+2. In Discord Developer Portal, inspect **Interactions Endpoint URL** for the AI application. Record whether it points to legacy `/api/discord`. Check whether slash commands are still required in the four linked channels.
+3. Decide per integration: RETAIN (implement and test replacement using People OS database and dedicated credentials), RETIRE (unregister endpoint/commands after owner approval), or UNCONFIRMED (keep legacy online).
+4. For retained bots, implement signed-request validation, identity/allowlist gates, idempotent event processing, and write correct logs in the destination database. Run provider verification and real QA before changing portal URLs.
+5. For retired bots, document change/rollback and manually confirm no workflow uses the channel. Do not share a LINE channel secret across unrelated bots.
+6. Only after dependency sign-off, verified backups and approved transfer/pause should the legacy database Compute be stopped.
+
+**No external developer-portal write or webhook removal has occurred.** No user data or secrets were copied.
 
 ## Phase 3 — Archives and recovery
 - Existing `ai-workspace` Supabase: 16 public tables; AI chat messages, documents, usage history, linked bot channels.
