@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getAccessContext } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -9,6 +10,10 @@ type ChatMsg = { role: "user" | "assistant"; content: string };
 export async function POST(req: Request) {
   const ctx = await getAccessContext();
   if (!ctx) return new Response("unauthorized", { status: 401 });
+  // API routes bypass the app shell; enforce employee membership + AI permission here.
+  if ((!ctx.isOwner && !ctx.employeeId) || !can(ctx, "ai_workplace", "view")) {
+    return new Response("forbidden", { status: 403 });
+  }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
