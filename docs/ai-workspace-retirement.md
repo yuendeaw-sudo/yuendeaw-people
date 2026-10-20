@@ -51,11 +51,13 @@
 - Do **not** change the actual LINE Developers Webhook URL, Discord Developer settings, Production Vercel secrets, legacy Supabase organization or historical chat data based solely on a Draft PR.
 - LINE-specific cutover, QA, backup/rollback and Discord retirement instructions: `docs/ai-line-cutover.md` in the PR #3 branch.
 
+> **Backup answer confirmed:** The owner states that no external SQL dump, downloaded backup or chat export was saved before deleting `ai-workspace`. Do not plan data restoration from the deleted Supabase project. Only GitHub source code and existing Vercel configuration remain independently accessible. The replacement LINE bot's group ID can be recovered safely using a temporary signed webhook discovery flow in PR #3, without relying on deleted records.
+
 ## Phase 3 — Data recovery after deletion
 - [x] Confirmed the old `ai-workspace` Supabase project is absent from the owner's accessible organization.
-- [ ] Ask whether the owner downloaded a separate database backup or exported Storage/chat history before deleting it.
+- [x] Asked: owner confirmed **no downloaded backups or historical export**.
 - [ ] If a verifiable offline backup exists, inventory/validate it privately and assess restoration to a separately approved location. Never publish sensitive data to GitHub.
-- [ ] If no offline backup exists, explicitly record loss of legacy Supabase-hosted chat, documents, LINE group mapping and Auth identities. Source code and migrations remain on GitHub; old rows do not.
+- [x] No offline backup exists. Legacy Supabase-hosted chat, documents, LINE group mapping and Auth identities cannot be recovered from GitHub source alone.
 - [ ] Keep Vercel project configuration secure while transferring the exact LINE AI channel credentials to People OS. Do not share tokens in chat.
 - [ ] Audit any other remaining custom domains, API dependencies and AI/LINE/Discord credentials of the still-deployed old Vercel project.
 
@@ -63,6 +65,7 @@
 - [x] Old Supabase project was deleted by the owner; no transfer or pause remains possible.
 - [ ] Confirm subsequent Supabase invoices contain no further Compute hours for deleted project; charges incurred before deletion may remain.
 - [ ] Ship the replacement signed LINE AI webhook from [PR #3](https://github.com/yuendeaw-sudo/yuendeaw-people/pull/3), using only an approved LINE group, selected `general_assistant`, and a controlled provider test.
+- [x] Prepared a temporary opt-in group-discovery command `อ๋อย group id` in PR #3. It requires a valid LINE signature and separate discovery-only mode; does not run the LLM or write old group data.
 - [ ] Decommission Discord at the developer portal (owner no longer uses Discord bot) and revoke unneeded credentials; preserve any independently backed-up data.
 - [ ] Retire the legacy Vercel project and domains only after LINE cutover and verification of unrelated dependencies; old webhook is already nonfunctional due to deleted Supabase.
 
