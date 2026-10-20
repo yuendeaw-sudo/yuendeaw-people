@@ -5,7 +5,7 @@ import {
   agentForLineGroup,
   detectLineTrigger,
   opaqueLineEventHash,
-  parseLineGroupAgents,
+  parseGeneralLineGroupAgents,
   verifyLineSignature,
   isGeneralLineAssistant,
   LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT,
@@ -47,10 +47,8 @@ function configOrNull(): { secret: string; config: LineConfig } | null {
   const encodedMap = process.env.LINE_AI_GROUP_AGENTS_JSON;
   if (!secret || !token || !model || !encodedMap || !process.env.ANTHROPIC_API_KEY) return null;
   try {
-    const agentMap = parseLineGroupAgents(encodedMap);
-    // Explicit owner decision: only general-purpose อ๋อย may answer in LINE.
-    // A mistakenly configured specialist/owner-only agent must fail closed.
-    if (!Object.values(agentMap).every(isGeneralLineAssistant)) return null;
+    // The owner wants only the standalone Aoy generalist (not specialist agents).
+    const agentMap = parseGeneralLineGroupAgents(encodedMap);
     return { secret, config: { token, model, agentMap } };
   } catch {
     return null;
