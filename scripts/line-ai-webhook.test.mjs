@@ -7,6 +7,10 @@ import {
   agentForLineGroup,
   detectLineTrigger,
   opaqueLineEventHash,
+  LINE_GENERAL_ASSISTANT_KEY,
+  LINE_GENERAL_ASSISTANT_NAME,
+  LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT,
+  isGeneralLineAssistant,
 } from "../lib/line-ai/webhook.ts";
 
 const groupA = "C1234567890abcdef";
@@ -25,16 +29,30 @@ test("exact LINE raw body HMAC passes and tampered bodies fail", () => {
 
 test("LINE group mapping is strict and only allows explicit group IDs", () => {
   const map = parseLineGroupAgents(JSON.stringify({
-    [groupA]: "production_assistant",
-    [groupB]: "meeting_summary",
+    [groupA]: LINE_GENERAL_ASSISTANT_KEY,
+    [groupB]: LINE_GENERAL_ASSISTANT_KEY,
   }));
-  assert.equal(agentForLineGroup(groupA, map), "production_assistant");
-  assert.equal(agentForLineGroup(groupB, map), "meeting_summary");
+  assert.equal(agentForLineGroup(groupA, map), "general_assistant");
+  assert.equal(agentForLineGroup(groupB, map), "general_assistant");
   assert.equal(agentForLineGroup("Coutside987654321", map), null);
   assert.equal(agentForLineGroup(undefined, map), null);
   assert.throws(() => parseLineGroupAgents('{"__proto__":"admin"}'));
   assert.throws(() => parseLineGroupAgents("{}"));
   assert.throws(() => parseLineGroupAgents('{"C1234567890abcdef":"bad-agent!"}'));
+});
+
+test("Aoy is a general-purpose assistant, not a department-specific agent", () => {
+  assert.equal(LINE_GENERAL_ASSISTANT_NAME, "อ๋อย");
+  assert.equal(LINE_GENERAL_ASSISTANT_KEY, "general_assistant");
+  assert.equal(isGeneralLineAssistant(LINE_GENERAL_ASSISTANT_KEY), true);
+  assert.equal(isGeneralLineAssistant("production_assistant"), false);
+  assert.equal(isGeneralLineAssistant("sales_proposal"), false);
+  assert.match(LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT, /ผู้ช่วย AI ทั่วไป/);
+  assert.match(LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT, /เขียนและแก้ข้อความ/);
+  assert.match(LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT, /ระดมไอเดีย/);
+  assert.match(LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT, /ไม่จำกัดตัวเองว่าเป็นฝ่าย Production/);
+  assert.match(LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT, /ห้ามเดา/);
+  assert.ok(LINE_GENERAL_ASSISTANT_SYSTEM_PROMPT.includes("\n"), "System prompt must retain paragraph breaks");
 });
 
 test("preserves old Thai/English triggers but ignores unrelated messages", () => {
