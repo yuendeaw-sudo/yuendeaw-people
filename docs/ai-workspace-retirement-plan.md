@@ -74,3 +74,23 @@ This PR:
 - https://supabase.com/docs/guides/troubleshooting/pausing-pro-projects-vNL-2a
 - https://supabase.com/docs/guides/platform/free-project-pausing
 - https://supabase.com/docs/guides/platform/manage-your-usage/compute
+
+## AW.2 Preview QA evidence — 2026-10-20
+
+- GitHub Draft PR #1, revision `4963ef66fb6fe9c1d69514f6653b82ce7f87f435`.
+- Vercel People OS Preview `dpl_GkogUxqwrwUVQPVrLCyPUxNL7kB8`: **READY**. Next.js build includes native `/ai-workplace` route.
+- An isolated Build sandbox checked out exactly that revision. `npm ci`, `npx tsc --noEmit`, `npm run lint` all exited **0**. Build sandbox revision and clean status verified.
+- Unauthenticated real HTTP Preview checks with Vercel protection bypass: `GET /ai-workplace` and `GET /ai-workplace/hr_assistant` each returned **307** to `/login`; `POST /api/ai/chat` returned **401**.
+- **Not proven:** Owner/employee authenticated AI response, Anthropic model validity, custom-agent parity with archived project, API quota/cost on staff use. No test AI request was billed, and no employee data was exported.
+
+### Further security gate
+
+The existing `public.ai_agents` `ai_agents_read` PostgreSQL policy permits `SELECT` of active rows for **any authenticated user**, regardless of People OS `ai_workplace:view`. Its table includes `system_prompt` and `access`. This is a pre-existing Data API authorization gap; server/UI filtering in this PR does not fix direct REST access. Before broad release, review a separate RLS hardening migration that restricts rows/columns appropriately without breaking authorized agents. **No Production RLS change is applied by this PR.**
+
+### Legacy project access blocker discovered 2026-10-20
+
+- The connected Supabase account currently lists three active projects but **does not list** the legacy project `qbkrsexjksmjnrevtrnn`. Direct project lookup returns *permission denied*.
+- The old project hostname `qbkrsexjksmjnrevtrnn.supabase.co` failed DNS resolution from a network-enabled QA sandbox; the People OS Supabase hostname resolved and returned the expected unauthorized response. This does **not** independently prove whether legacy Supabase is deleted, transferred, paused, or access-restricted.
+- The legacy Vercel website and repository still exist. A static web 200 response **does not verify** that historical Postgres/Auth/Storage data still exists.
+- **Freeze AW.3 and AW.4:** do not export, transfer, pause, delete, remove bot webhooks or edit legacy secrets until the owner confirms where the old Supabase project resides and restore/backup access is verified.
+- A target Free organization is not currently available in the connected Supabase account; after confirming legacy status and verified backup, the owner will need to prepare or choose an eligible Free organization. The transfer/pause must be a separate reviewed, explicit action.
