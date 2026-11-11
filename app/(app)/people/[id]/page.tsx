@@ -13,6 +13,7 @@ import { EmployeeStatusActions } from "@/components/people/EmployeeStatusActions
 import { JobDescriptionCard } from "@/components/people/JobDescriptionCard";
 import { stipendDays, stipendAmount, evalDueFromStart, internEvalState, DEFAULT_STIPEND } from "@/lib/intern";
 import { platformOf } from "@/lib/social";
+import { EmployeeLeaveSummary } from "@/components/leave/EmployeeLeaveSummary";
 
 function tenure(start?: string | null) {
   if (!start) return null;
@@ -211,6 +212,8 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
           )}
         </div>
       </div>
+
+      <EmployeeLeaveSummary employeeId={id} startDate={emp.start_date} employmentTypeKey={et?.key} />
 
       <div className="mb-5">
         <JobDescriptionCard

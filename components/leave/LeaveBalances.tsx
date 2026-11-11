@@ -1,30 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, Badge } from "@/components/ui";
 import { Icon } from "@/components/Icon";
+import { tenureMonths, annualEntitlement } from "@/lib/leave";
 
 /**
  * Per-employee leave balance dashboard. "used" counts ONLY approved requests
  * (pending/unapproved leave doesn't count). Annual leave unlocks after 1 year
  * and scales by tenure. Quotas/tiers come from leave_policies (HR-editable).
  */
-
-function tenureMonths(start?: string | null) {
-  if (!start) return 0;
-  const s = new Date(start);
-  if (isNaN(s.getTime())) return 0;
-  const now = new Date();
-  let m = (now.getFullYear() - s.getFullYear()) * 12 + (now.getMonth() - s.getMonth());
-  if (now.getDate() < s.getDate()) m -= 1;
-  return Math.max(0, m);
-}
-
-function annualEntitlement(tiers: { years: number; days: number }[], years: number) {
-  let days = 0;
-  for (const t of (tiers ?? []).sort((a, b) => a.years - b.years)) {
-    if (years >= t.years) days = t.days;
-  }
-  return days;
-}
 
 function Bar({ used, total }: { used: number; total: number }) {
   const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
@@ -45,9 +28,9 @@ export async function LeaveBalances({
   employmentTypeKey?: string;
 }) {
   const supabase = await createClient();
-  const year = new Date().getFullYear();
+  const year = Number(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", year: "numeric" }).format(new Date()));
 
-  const [{ data: policies }, { data: reqs }] = await Promise.all([
+  const [{ data: policies, error: policyError }, { data: reqs, error: requestError }] = await Promise.all([
     supabase
       .from("leave_policies")
       .select("annual_quota_days, rules, leave_types(key), employment_types(key)")
@@ -60,6 +43,10 @@ export async function LeaveBalances({
       .gte("start_date", `${year}-01-01`)
       .lte("start_date", `${year}-12-31`),
   ]);
+
+  if (policyError || requestError) {
+    return <Card><p role="alert" className="text-sm text-rose">ไม่สามารถโหลดสรุปวันลาได้ กรุณาลองใหม่อีกครั้ง</p></Card>;
+  }
 
   const policyFor = (key: string) =>
     (policies ?? []).find((p: any) => {
@@ -118,7 +105,7 @@ export async function LeaveBalances({
               <span className="text-base font-normal text-muted"> / {annualEntitled} วัน</span>
             </div>
             <Bar used={annualUsed} total={annualEntitled} />
-            <p className="text-sm text-muted mt-2">ใช้ไป {annualUsed} วัน · อยู่กับเรา {years} ปี</p>
+            <p className="text-sm text-muted mt-2">ใช้สิทธิ์แล้ว {annualUsed} วัน · อยู่กับเรา {years} ปี</p>
           </>
         )}
       </Card>
@@ -134,7 +121,7 @@ export async function LeaveBalances({
           <span className="text-base font-normal text-muted"> / {personalEntitled} วัน</span>
         </div>
         <Bar used={personalUsed} total={personalEntitled} />
-        <p className="text-sm text-muted mt-2">ใช้ไป {personalUsed} วัน · แจ้งหัวหน้าล่วงหน้า</p>
+        <p className="text-sm text-muted mt-2">ใช้สิทธิ์แล้ว {personalUsed} วัน · แจ้งหัวหน้าล่วงหน้า</p>
       </Card>
 
       {/* ลาป่วย — framed as a right, not a target */}
@@ -144,8 +131,10 @@ export async function LeaveBalances({
           <Badge tone="sand">ตามจำเป็น</Badge>
         </div>
         <div className="mt-2 text-3xl font-extrabold">
-          {sickUsed} <span className="text-base font-normal text-muted">วันปีนี้</span>
+          {sickUsed} <span className="text-base font-normal text-muted">วันใช้สิทธิ์แล้ว</span>
         </div>
+        <Bar used={sickUsed} total={sickCap} />
+        <p className="text-sm font-medium mt-2">สิทธิ์รับค่าจ้างเหลือ {Math.max(0, sickCap - sickUsed)} / {sickCap} วัน</p>
         <p className="text-sm text-muted mt-3 leading-relaxed">
           ป่วยจริงลาได้ — แจ้งหัวหน้า แนบใบรับรองแพทย์ถ้าลายาว 3 วันขึ้นไป
           <br />

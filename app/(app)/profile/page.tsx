@@ -12,6 +12,7 @@ import { AvatarUpload } from "@/components/profile/AvatarUpload";
 import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
 import { EmployeeDocuments } from "@/components/people/EmployeeDocuments";
 import { JobDescriptionCard } from "@/components/people/JobDescriptionCard";
+import { EmployeeLeaveSummary } from "@/components/leave/EmployeeLeaveSummary";
 
 function Field({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
@@ -121,6 +122,8 @@ export default async function ProfilePage() {
           </div>
         </div>
       </Card>
+
+      <EmployeeLeaveSummary employeeId={ctx.employeeId} startDate={emp.start_date} employmentTypeKey={et?.key} />
 
       <div className="mb-5">
         <JobDescriptionCard
