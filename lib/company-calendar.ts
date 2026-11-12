@@ -41,8 +41,8 @@ export function summarizeLeave(requests: CalendarLeave[], year: number, today: s
     .filter(r => r.key === key && r.status === "approved" && (r.start_date > today) === future)
     .reduce((n, r) => n + Number(r.total_days || 0), 0);
   return {
-    sick: sum("sick", false), personal: sum("personal", false), annual: sum("annual", false),
-    planned: rows.filter(r => r.status === "approved" && r.start_date > today),
-    pending: rows.filter(r => ["pending", "awaiting_confirm"].includes(r.status)),
+    sick: sum("sick", false), personal: sum("personal", false), annual: sum("annual", false), wfh: sum("wfh", false),
+    planned: rows.filter(r => r.key !== "wfh" && r.status === "approved" && r.start_date > today),
+    pending: rows.filter(r => r.key !== "wfh" && ["pending", "awaiting_confirm"].includes(r.status)),
   };
 }

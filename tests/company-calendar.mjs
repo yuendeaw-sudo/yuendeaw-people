@@ -34,3 +34,14 @@ assert.equal(result.sick,0.5);assert.equal(result.personal,1);assert.equal(resul
 assert.equal(result.planned.length,2);assert.equal(result.pending.length,2);
 assert.equal(summarizeLeave([],2027,'2026-11-12').sick,0);
 console.log('PASS 16 holidays / 13 traditional + 3 special, substitutes, monthly limits, unpublished years, Bangkok year boundary, half-days, started vs planned vs pending and cancelled/rejected exclusion');
+
+const wfh = summarizeLeave([
+  row('wfh','2027-01-02','approved',1), row('wfh','2027-01-05','approved',0.5),
+  row('wfh','2027-01-06','approved',1), row('wfh','2027-01-03','cancelled',1),
+  row('wfh','2027-01-03','rejected',1), row('wfh','2027-01-03','pending',1),
+  row('wfh','2027-01-03','awaiting_confirm',1), row('wfh','2026-12-01','approved',3),
+],2027,'2027-01-05');
+assert.equal(wfh.wfh,1.5);
+assert.equal(wfh.sick,0);assert.equal(wfh.personal,0);assert.equal(wfh.annual,0);
+assert.equal(wfh.planned.length,0);assert.equal(wfh.pending.length,0);
+console.log('PASS WFH recorded days: approved through selected date only, includes half-days, excludes future/other years/rejected/cancelled/pending; never mixed into leave bookings');

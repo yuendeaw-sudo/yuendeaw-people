@@ -24,7 +24,7 @@ export function CompanyCalendar({ requests, today, hasEmployee, loadError }: {
   const summary = summarizeLeave(requests, year, today);
   const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
   const monthHolidays = (holidays ?? []).filter(h => h.date.startsWith(prefix));
-  const monthRequests = requests.filter(r => r.start_date <= `${prefix}-31` && r.end_date >= `${prefix}-01`);
+  const monthRequests = requests.filter(r => r.key !== "wfh" && r.start_date <= `${prefix}-31` && r.end_date >= `${prefix}-01`);
   const firstDay = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7;
   const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 
@@ -46,17 +46,15 @@ export function CompanyCalendar({ requests, today, hasEmployee, loadError }: {
         <h2 className="font-semibold flex items-center gap-2"><Icon name="CalendarDays" className="size-5 text-gold" />วันหยุดบริษัท ปี {year + 543}</h2>
         {holidays && <Badge tone="brand">{holidays.length} วัน</Badge>}
       </div>
-      <p className="text-sm text-muted mt-2">{holidays ? "วันหยุดตามประเพณี 13 วัน และวันหยุดพิเศษบริษัท 3 วัน แยกจากสิทธิพักร้อนส่วนบุคคล" : "ยังไม่มีประกาศวันหยุดบริษัทสำหรับปีนี้ ไม่ได้หมายความว่าไม่มีวันหยุด"}</p>
-      <p className="text-xs text-muted mt-2">ปฏิทินนี้อ้างอิงวันทำงานจันทร์–ศุกร์ ทีมที่ทำงานเป็นกะให้ยึดตารางที่ตกลงกับหัวหน้า</p>
+      {!holidays && <p className="text-sm text-muted mt-2">ยังไม่ประกาศวันหยุดปีนี้</p>}
     </Card>
 
     {hasEmployee && (loadError ? <Card><p role="alert" className="text-sm text-rose">โหลดข้อมูลการลาส่วนตัวไม่สำเร็จ กรุณาลองใหม่ วันหยุดบริษัทยังดูได้ตามปกติ</p></Card> : <section aria-label="บันทึกการลาของฉัน" className="space-y-3">
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        {[{ label: "ลาป่วยที่เริ่มแล้ว", value: summary.sick }, { label: "ลากิจที่เริ่มแล้ว", value: summary.personal }, { label: "พักร้อนที่เริ่มแล้ว", value: summary.annual }].map(item => <Card key={item.label} className="!p-3 sm:!p-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        {[{ label: "ลาป่วย", value: summary.sick }, { label: "ลากิจ", value: summary.personal }, { label: "พักร้อน", value: summary.annual }, { label: "Work from home", value: summary.wfh }].map(item => <Card key={item.label} className="!p-3 sm:!p-4">
           <p className="text-xs sm:text-sm text-muted">{item.label}</p><p className="text-2xl font-bold mt-1">{item.value} <span className="text-sm font-normal">วัน</span></p>
         </Card>)}
       </div>
-      <p className="text-xs text-muted">นับเฉพาะรายการอนุมัติที่เริ่มลาแล้วในปีที่เลือก รวมรายการที่กำลังลา โดยใช้จำนวนวันตามที่บันทึกไว้ ไม่รวม WFH / ทำงานนอกสถานที่</p>
       <div className="flex flex-wrap gap-2 text-sm"><Badge tone="mint">อนุมัติลาล่วงหน้า {summary.planned.length} รายการ</Badge><Badge tone="amber">รออนุมัติ / รอยืนยัน {summary.pending.length} รายการ</Badge></div>
     </section>)}
 
