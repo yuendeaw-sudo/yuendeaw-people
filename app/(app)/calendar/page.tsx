@@ -12,7 +12,7 @@ export default async function CalendarPage() {
   const { data, error } = ctx.employeeId ? await supabase.from("leave_requests")
     .select("id, start_date, end_date, total_days, status, leave_types!inner(name, key)")
     .eq("employee_id", ctx.employeeId)
-    .not("leave_types.key", "in", "(wfh,onsite,event)")
+    .not("leave_types.key", "in", "(onsite,event)")
     .order("start_date", { ascending: false }) : { data: [], error: null };
   const requests: CalendarLeave[] = (data ?? []).map(row => {
     const lt = row.leave_types as unknown as { key: string; name: string };
