@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getAccessContext } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
@@ -132,6 +133,7 @@ export default async function TimeLeavePage() {
           subtitle="บริหารวันลา OT และเวลาทำงานของทีม"
           action={
             <div className="flex flex-wrap gap-2">
+              <Link href="/calendar" className="btn bg-sand"><Icon name="CalendarDays" className="size-4" />ปฏิทิน &amp; วันหยุด</Link>
               <CompDayOffGrant employees={spEmployees} />
               <SpecialLeaveForm employees={spEmployees} leaveTypes={spLeaveTypes} />
             </div>
@@ -229,9 +231,10 @@ export default async function TimeLeavePage() {
       <PageHeader
         title="เวลา & การลา"
         icon="CalendarClock"
-        subtitle="ดูวันลาคงเหลือ ขอลา และแจ้งทำงานนอกออฟฟิศ"
+        subtitle="ดูบันทึกการลา วางแผนเวลาพัก และแจ้งทำงานนอกออฟฟิศ"
         action={
           <div className="flex flex-wrap gap-2">
+              <Link href="/calendar" className="btn bg-sand"><Icon name="CalendarDays" className="size-4" />ปฏิทิน &amp; วันหยุด</Link>
             {canKeySpecial && <SpecialLeaveForm employees={spEmployees} leaveTypes={spLeaveTypes} />}
             {ctx.employeeId && <LeaveRequestForm leaveTypes={leaveTypes ?? []} employeeId={ctx.employeeId} limits={limits} />}
           </div>

@@ -29,10 +29,10 @@ export async function EmployeeLeaveSummary({
         <h2 className="font-bold text-lg flex items-center gap-2">
           <Icon name="CalendarDays" className="size-5 text-gold" /> วันลา ปี {year + 543}
         </h2>
-        {self && <Link href="/time-leave" className="text-sm text-gold hover:underline">ไปหน้าเวลา &amp; การลา →</Link>}
+        {self && <Link href="/calendar" className="text-sm text-gold hover:underline">ดูปฏิทิน &amp; วันหยุด →</Link>}
       </div>
       <p className="text-xs text-muted">
-        ยอดคงเหลือนับเฉพาะลาที่อนุมัติแล้ว รวมลาล่วงหน้า · รายการรออนุมัติ ไม่อนุมัติ และยกเลิกยังไม่หักยอด
+        บันทึกการลาแยกจากรายการที่วางแผนไว้ล่วงหน้า · วันหยุดบริษัทแยกจากวันลาส่วนบุคคล
         <br />นับตามวันเริ่มลาในปีนี้ ไม่รวม WFH และทำงานนอกสถานที่
       </p>
       {employmentTypeKey === "intern" ? (

@@ -143,6 +143,11 @@ export default async function DashboardPage() {
         <p className="text-muted text-sm mt-1">ภาพรวมของวันนี้</p>
       </div>
 
+      <Link href="/calendar" className="card flex items-center justify-between gap-3 p-4 hover:bg-brand-soft/30 transition">
+        <span className="flex items-center gap-3"><Icon name="CalendarDays" className="size-5 text-gold" /><span><span className="block font-semibold">ปฏิทิน &amp; วันหยุด</span><span className="block text-xs text-muted mt-1">วันหยุดบริษัท ประวัติการลา และข้อมูลสำหรับวางแผนชีวิต</span></span></span>
+        <Icon name="ChevronRight" className="size-4 shrink-0" />
+      </Link>
+
       {/* ทีมวันนี้ — ทุกคนเห็น (ใคร WFH / ออกกอง / ลา) */}
       <TeamTodayStatus />
 
