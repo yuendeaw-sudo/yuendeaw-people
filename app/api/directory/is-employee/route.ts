@@ -16,11 +16,13 @@ const ACTIVE_STATUSES = ["active", "probation", "intern", "freelance"];
 // realtime client's Node-version requirements.
 export async function GET(req: Request) {
   const token = process.env.DIRECTORY_API_TOKEN;
-  if (!token) {
+  // Separate sibling-app credential; the existing directory token stays valid.
+  const communeedToken = process.env.COMMUNEED_DIRECTORY_API_TOKEN;
+  if (!token && !communeedToken) {
     return NextResponse.json({ error: "directory not configured" }, { status: 503 });
   }
   const bearer = req.headers.get("authorization")?.replace("Bearer ", "");
-  if (bearer !== token) {
+  if (!bearer || !((token && bearer === token) || (communeedToken && bearer === communeedToken))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -56,3 +58,4 @@ export async function GET(req: Request) {
     { headers: { "Cache-Control": "no-store" } }
   );
 }
+
