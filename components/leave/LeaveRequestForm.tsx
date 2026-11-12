@@ -142,7 +142,7 @@ export function LeaveRequestForm({
                 คุณยังไม่มีสิทธิ์ลาพักร้อน — ต้องอยู่กับเราครบ 1 ปี (อีก {limits?.annual.monthsToUnlock} เดือน)
               </div>
             ) : remaining != null ? (
-              <p className="mt-1.5 text-xs text-muted">คงเหลือ <b className="text-ink">{remaining}</b> วันในปีนี้</p>
+              <p className="mt-1.5 text-xs text-muted">ยื่นคำขอเพิ่มได้ <b className="text-ink">{remaining}</b> วัน ตามสิทธิปีนี้</p>
             ) : null}
           </div>
           <div className="grid grid-cols-2 gap-3">

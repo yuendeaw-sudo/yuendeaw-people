@@ -43,6 +43,7 @@ export const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { key: "dashboard", label: "หน้าหลัก", href: "/dashboard", icon: "LayoutDashboard" },
       { key: "profile", label: "โปรไฟล์ของฉัน", href: "/profile", icon: "User" },
+      { key: "calendar", label: "ปฏิทิน & วันหยุด", href: "/calendar", icon: "CalendarDays" },
       { key: "quests", label: "Growth Quest", href: "/quests", icon: "Target" },
       { key: "leave", label: "เวลา & การลา", href: "/time-leave", icon: "CalendarClock", hideForIntern: true },
       { key: "my-interns", label: "น้องฝึกในความดูแล", href: "/my-interns", icon: "GraduationCap", mentorOnly: true },
@@ -88,6 +89,7 @@ export const NAV_OWNER: { section: string; items: NavItem[] }[] = [
     items: [
       { key: "dashboard", label: "หน้าหลัก", href: "/dashboard", icon: "LayoutDashboard" },
       { key: "profile", label: "โปรไฟล์ของฉัน", href: "/profile", icon: "User" },
+      { key: "calendar", label: "ปฏิทิน & วันหยุด", href: "/calendar", icon: "CalendarDays" },
     ],
   },
   {

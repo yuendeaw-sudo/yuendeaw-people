@@ -1,22 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, Badge } from "@/components/ui";
-import { Icon } from "@/components/Icon";
+import { bangkokDate } from "@/lib/company-calendar";
 import { tenureMonths, annualEntitlement } from "@/lib/leave";
-
-/**
- * Per-employee leave balance dashboard. "used" counts ONLY approved requests
- * (pending/unapproved leave doesn't count). Annual leave unlocks after 1 year
- * and scales by tenure. Quotas/tiers come from leave_policies (HR-editable).
- */
-
-function Bar({ used, total }: { used: number; total: number }) {
-  const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
-  return (
-    <div className="h-2.5 rounded-full bg-sand overflow-hidden mt-2">
-      <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
-    </div>
-  );
-}
 
 export async function LeaveBalances({
   employeeId,
@@ -28,7 +13,8 @@ export async function LeaveBalances({
   employmentTypeKey?: string;
 }) {
   const supabase = await createClient();
-  const year = Number(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", year: "numeric" }).format(new Date()));
+  const today = bangkokDate();
+  const year = Number(today.slice(0, 4));
 
   const [{ data: policies, error: policyError }, { data: reqs, error: requestError }] = await Promise.all([
     supabase
@@ -39,7 +25,7 @@ export async function LeaveBalances({
       .from("leave_requests")
       .select("total_days, status, start_date, leave_types(key)")
       .eq("employee_id", employeeId)
-      .eq("status", "approved")
+      .in("status", ["approved", "pending"])
       .gte("start_date", `${year}-01-01`)
       .lte("start_date", `${year}-12-31`),
   ]);
@@ -49,16 +35,17 @@ export async function LeaveBalances({
   }
 
   const policyFor = (key: string) =>
-    (policies ?? []).find((p: any) => {
-      const et = p.employment_types?.key;
-      return p.leave_types?.key === key && (!et || et === employmentTypeKey);
-    }) ??
+    (policies ?? []).find((p: any) => p.leave_types?.key === key && p.employment_types?.key === employmentTypeKey) ??
+    (policies ?? []).find((p: any) => p.leave_types?.key === key && !p.employment_types) ??
     (policies ?? []).find((p: any) => p.leave_types?.key === key && p.employment_types?.key === "full_time");
 
-  const usedOf = (key: string) =>
-    (reqs ?? [])
-      .filter((r: any) => r.leave_types?.key === key)
+  const daysOf = (key: string, state: "started" | "planned" | "pending") =>
+    (reqs ?? []).filter((r: any) => r.leave_types?.key === key &&
+      (state === "pending" ? r.status === "pending" : r.status === "approved" &&
+        (state === "planned" ? r.start_date > today : r.start_date <= today)))
       .reduce((s: number, r: any) => s + Number(r.total_days || 0), 0);
+  const usedOf = (key: string) => daysOf(key, "started");
+  const bookedOf = (key: string) => daysOf(key, "started") + daysOf(key, "planned");
 
   const months = tenureMonths(startDate);
   const years = Math.floor(months / 12);
@@ -69,78 +56,43 @@ export async function LeaveBalances({
   const annualLocked = years < 1;
   const annualEntitled = annualEntitlement(tiers, years);
   const annualUsed = usedOf("annual");
-  const annualLeft = Math.max(0, annualEntitled - annualUsed);
+  const annualLeft = Math.max(0, annualEntitled - bookedOf("annual"));
 
   // personal
   const personalEntitled = Number(policyFor("personal")?.annual_quota_days ?? 3);
   const personalUsed = usedOf("personal");
-  const personalLeft = Math.max(0, personalEntitled - personalUsed);
+  const personalLeft = Math.max(0, personalEntitled - bookedOf("personal"));
 
   // sick
   const sickUsed = usedOf("sick");
   const sickCap = Number(policyFor("sick")?.annual_quota_days ?? 30);
 
   return (
-    <div className="grid sm:grid-cols-3 gap-4">
-      {/* ลาพักร้อน */}
-      <Card>
-        <div className="flex items-center justify-between">
-          <span className="font-semibold text-base">ลาพักร้อน 🌴</span>
-          <Badge tone="grape">ต้องอนุมัติ</Badge>
-        </div>
-        {annualLocked ? (
-          <>
-            <div className="mt-3 flex items-center gap-2 text-amber">
-              <Icon name="Lock" className="size-5" />
-              <span className="font-bold text-base">ยังไม่ปลดล็อก</span>
-            </div>
-            <p className="text-sm text-muted mt-1.5">
-              สิทธิ์ลาพักร้อนเริ่มเมื่ออยู่ครบ 1 ปี — เหลืออีก {Math.max(0, 12 - months)} เดือน
-            </p>
-          </>
-        ) : (
-          <>
-            <div className="mt-2 text-3xl font-extrabold">
-              เหลือ {annualLeft}
-              <span className="text-base font-normal text-muted"> / {annualEntitled} วัน</span>
-            </div>
-            <Bar used={annualUsed} total={annualEntitled} />
-            <p className="text-sm text-muted mt-2">ใช้สิทธิ์แล้ว {annualUsed} วัน · อยู่กับเรา {years} ปี</p>
-          </>
-        )}
+    <section aria-label={`บันทึกการลา ปี ${year + 543}`} className="space-y-3">
+      <div className="grid sm:grid-cols-3 gap-3">
+        {[
+          { key: "sick", name: "ลาป่วย", days: sickUsed },
+          { key: "personal", name: "ลากิจ", days: personalUsed },
+          { key: "annual", name: "พักร้อน", days: annualUsed },
+        ].map(item => <Card key={item.key} className="!p-4">
+          <div className="flex items-center justify-between gap-2"><h3 className="font-semibold">{item.name}</h3><Badge tone="sand">ปี {year + 543}</Badge></div>
+          <p className="mt-2 text-2xl font-bold">{item.days} <span className="text-sm font-normal text-muted">วัน · ลาที่เริ่มแล้ว</span></p>
+          {daysOf(item.key, "planned") > 0 && <p className="text-xs text-muted mt-2">อนุมัติล่วงหน้า {daysOf(item.key, "planned")} วัน แสดงแยกจากประวัติ</p>}
+          {daysOf(item.key, "pending") > 0 && <p className="text-xs text-muted mt-1">รออนุมัติ {daysOf(item.key, "pending")} วัน</p>}
+        </Card>)}
+      </div>
+      <p className="text-xs text-muted">นับเฉพาะลาที่อนุมัติและเริ่มลาแล้ว รวมรายการที่กำลังลา ตามจำนวนวันที่บันทึกไว้และปีที่เริ่มลา</p>
+      <Card className="!p-4">
+        <details>
+          <summary className="cursor-pointer font-medium text-sm">สิทธิและข้อมูลสำหรับวางแผนการลา</summary>
+          <div className="mt-3 space-y-3 text-sm text-muted">
+            <p>วันหยุดบริษัทแยกจากสิทธิพักร้อน เลือกวางแผนตามความจำเป็นและประสานการส่งต่องานกับหัวหน้า</p>
+            {annualLocked ? <p>สิทธิพักร้อนปัจจุบันเริ่มเมื่อทำงานครบ 1 ปี · อายุงาน {months} เดือน หากต้องการหยุดก่อนครบปี ให้ปรึกษา HR</p> : <p>พักร้อนตามอายุงาน {years} ปี: {annualEntitled} วัน/ปี · อนุมัติแล้ว {bookedOf("annual")} วัน · วางแผนเพิ่มได้ {Math.max(0, annualLeft - daysOf("annual", "pending"))} วัน หลังกันรายการรออนุมัติ</p>}
+            <p>ลากิจธุระจำเป็น: {personalEntitled} วัน/ปี · อนุมัติแล้ว {bookedOf("personal")} วัน · วางแผนเพิ่มได้ {Math.max(0, personalLeft - daysOf("personal", "pending"))} วัน หลังกันรายการรออนุมัติ</p>
+            <p>ลาป่วยได้เท่าที่ป่วยจริง · รับค่าจ้างไม่เกิน {sickCap} วันทำงาน/ปี ตัวเลขนี้เป็นกรอบการจ่ายค่าจ้าง ไม่ใช่จำนวนวันที่ต้องใช้</p>
+          </div>
+        </details>
       </Card>
-
-      {/* ลากิจ */}
-      <Card>
-        <div className="flex items-center justify-between">
-          <span className="font-semibold text-base">ลากิจ</span>
-          <Badge tone="grape">ต้องอนุมัติ</Badge>
-        </div>
-        <div className="mt-2 text-3xl font-extrabold">
-          เหลือ {personalLeft}
-          <span className="text-base font-normal text-muted"> / {personalEntitled} วัน</span>
-        </div>
-        <Bar used={personalUsed} total={personalEntitled} />
-        <p className="text-sm text-muted mt-2">ใช้สิทธิ์แล้ว {personalUsed} วัน · แจ้งหัวหน้าล่วงหน้า</p>
-      </Card>
-
-      {/* ลาป่วย — framed as a right, not a target */}
-      <Card>
-        <div className="flex items-center justify-between">
-          <span className="font-semibold text-base">ลาป่วย</span>
-          <Badge tone="sand">ตามจำเป็น</Badge>
-        </div>
-        <div className="mt-2 text-3xl font-extrabold">
-          {sickUsed} <span className="text-base font-normal text-muted">วันใช้สิทธิ์แล้ว</span>
-        </div>
-        <Bar used={sickUsed} total={sickCap} />
-        <p className="text-sm font-medium mt-2">สิทธิ์รับค่าจ้างเหลือ {Math.max(0, sickCap - sickUsed)} / {sickCap} วัน</p>
-        <p className="text-sm text-muted mt-3 leading-relaxed">
-          ป่วยจริงลาได้ — แจ้งหัวหน้า แนบใบรับรองแพทย์ถ้าลายาว 3 วันขึ้นไป
-          <br />
-          <span className="text-xs">(ได้รับค่าจ้างไม่เกิน {sickCap} วัน/ปี)</span>
-        </p>
-      </Card>
-    </div>
+    </section>
   );
 }
