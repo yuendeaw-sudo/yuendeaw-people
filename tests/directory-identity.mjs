@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {readFile,mkdir,writeFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import ts from 'typescript';
+const dir=resolve('.tmp/identity-test');await mkdir(dir,{recursive:true});
+const source=(await readFile('app/api/directory/identity/route.ts','utf8')).replace("from 'next/server'","from 'next/server.js'");
+await writeFile(resolve(dir,'route.mjs'),ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText);
+const {GET}=await import(pathToFileURL(resolve(dir,'route.mjs')));
+process.env.COMMUNEED_DIRECTORY_API_TOKEN='synthetic-identity-only';process.env.DIRECTORY_API_TOKEN='synthetic-old-token';process.env.NEXT_PUBLIC_SUPABASE_URL='https://directory.example.invalid';process.env.SUPABASE_SERVICE_ROLE_KEY='synthetic-service';
+const id='11111111-1111-4111-8111-111111111111';let calls=0,rows=[{id,employee_code:'EMP-001',first_name:'Synthetic',last_name:'Employee',nickname:'QA',email:'under_score%*@example.invalid',status:'active',employment_types:{key:'full_time'},salary:99999,notes:'NEVER EXPOSE'}];
+globalThis.fetch=async(url,options)=>{calls++;const u=new URL(url);assert.equal(u.origin,'https://directory.example.invalid');assert.equal(u.searchParams.get('limit'),'2');assert.equal(u.searchParams.get('select'),'id,employee_code,first_name,last_name,nickname,email,status,employment_types(key)');assert.equal(options.redirect,'error');assert.equal(options.cache,'no-store');assert.ok(options.signal);return Response.json(rows)};
+async function call(query,token='synthetic-identity-only',status=200){const r=await GET(new Request('https://people.example.invalid/api/directory/identity?'+query,{headers:token?{Authorization:'Bearer '+token}:{}}));assert.equal(r.status,status);assert.equal(r.headers.get('Cache-Control'),'private, no-store');const d=await r.json();assert.ok(!JSON.stringify(d).includes('NEVER EXPOSE'));assert.ok(!JSON.stringify(d).includes('99999'));assert.ok(!JSON.stringify(d).includes('synthetic-service'));return d}
+for(const token of [null,'bad','synthetic-old-token'])await call('employeeCode=EMP-001',token,401);assert.equal(calls,0);
+for(const q of ['','q=Synthetic','employeeId=not-a-uuid','employeeCode=EMP*','email=x','email=a%40b.test&employeeId='+id])await call(q,undefined,400);assert.equal(calls,0);
+const d=await call('email='+encodeURIComponent('UNDER_SCORE%*@EXAMPLE.INVALID'));assert.equal(d.candidates[0].employeeId,id);assert.equal(d.candidates[0].employmentType,'full_time');assert.equal(Object.keys(d.candidates[0]).length,6);
+await call('employeeCode=EMP-001');await call('employeeId='+id);rows=[...rows,...rows];assert.equal((await call('employeeCode=EMP-001')).candidates.length,2);
+rows=[];assert.deepEqual(await call('employeeCode=NONE'),{candidates:[]});
+rows=[{id,status:'unknown',first_name:'Synthetic'}];await call('employeeId='+id,undefined,503);
+globalThis.fetch=async()=>{throw Error('private provider error')};await call('employeeId='+id,undefined,503);
+console.log('PASS minimal exact People identity: dedicated token, no wildcard matching, duplicate/no-match handling, minimal projection, malformed and provider failures');

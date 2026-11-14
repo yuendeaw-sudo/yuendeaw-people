@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'app/api/directory/is-employee/route.ts'
+      - 'app/api/directory/identity/route.ts'
+      - 'tests/directory-identity.mjs'
       - 'tests/directory-tokens.mjs'
       - '.github/workflows/directory-tokens.yml'
 permissions:
@@ -21,5 +23,6 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts --no-fund
       - run: node tests/directory-tokens.mjs
+      - run: node tests/directory-identity.mjs
       - run: npx tsc --noEmit
       - run: git diff --check
