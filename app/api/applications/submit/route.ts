@@ -44,6 +44,14 @@ export async function POST(req: Request) {
   };
 
   const admin = createAdminClient();
+  if(b.intro_video_path){
+    const path=String(b.intro_video_path);
+    if(!/^\d{13}-[0-9a-f-]{36}\.(webm|mp4)$/.test(path))return new Response("คลิปไม่ถูกต้อง",{status:400});
+    const {data:file,error:fileError}=await admin.storage.from('applicant-videos').info(path);
+    if(fileError||!file||Number(file.size)>40*1024*1024)return new Response("ไม่พบคลิปที่อัปโหลด กรุณาลองส่งใหม่",{status:400});
+    row.id=crypto.randomUUID();row.answers={...row.answers,intro_video_path:path};
+    row.intro_video_url=`${process.env.NEXT_PUBLIC_APP_URL||'https://people.yuendeaw.com'}/api/applications/video/${row.id}`;
+  }
 
   // รูปถ่ายผู้สมัคร (base64) → อัปโหลด storage bucket → เก็บ public URL
   if (typeof b.photo === "string" && b.photo.startsWith("data:image")) {

@@ -15,3 +15,5 @@
 .season-upcoming{bottom:56px;left:15px;right:auto;font-size:10px}
 
 .role-visual{isolation:isolate}.role-visual .role-character{mix-blend-mode:normal;filter:none;opacity:1;padding:18px;box-sizing:border-box}
+
+.camera-controls button{margin:0 8px 10px 0}.recorded-preview{display:block;width:100%;max-height:360px;margin-top:15px;background:#141414}.recorded-preview[hidden],.camera-controls button[hidden]{display:none}
