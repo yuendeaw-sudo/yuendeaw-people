@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
 import {
   INTERESTED_ROLES,
@@ -85,7 +85,7 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
   const [f, setF] = useState<any>({
     full_name: "", nickname: "", age: "", phone: "", email: "", line_id: "", location: "",
     work_type_interest: type === "internship" ? "internship" : "full_time",
-    available_start_date: "", expected_compensation: "", current_status: "",
+    available_start_date: "", internship_end_date:"", internship_season:"", expected_compensation: "", current_status: "",
     interested_roles: [] as string[],
     resume_url: "", portfolio_url: "",
     portfolio_links: ["", "", ""],
@@ -133,6 +133,10 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
     ctx.drawImage(img, 0, 0, width, height);
     set("photo", c.toDataURL("image/jpeg", 0.82));
   }
+  useEffect(()=>{if(!isIntern)return;const q=new URLSearchParams(window.location.search);const update:Record<string,string>={};for(const [key,field] of [['start','available_start_date'],['end','internship_end_date']]){const v=q.get(key);if(v&&/^\d{4}-\d{2}-\d{2}$/.test(v))update[field]=v}if(Object.keys(update).length){update.internship_months='4';update.internship_season=q.get('season')||'';setF((old:any)=>({...old,...update}))}},[isIntern]);
+  const [recorded,setRecorded]=useState<{blob:Blob,type:string}|null>(null);
+  const [clipUrl,setClipUrl]=useState("");
+  useEffect(()=>{if(!isIntern)return;let disposed=false,url="";const r=indexedDB.open('yuendeaw-intro-video',1);r.onupgradeneeded=()=>r.result.createObjectStore('clips');r.onsuccess=()=>{const db=r.result,q=db.transaction('clips').objectStore('clips').get('intro');q.onsuccess=()=>{if(q.result?.blob&&!disposed){setRecorded(q.result);url=URL.createObjectURL(q.result.blob);setClipUrl(url)}db.close()}};return()=>{disposed=true;if(url)URL.revokeObjectURL(url)}},[isIntern]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const set = (k: string, v: any) => setF((s: any) => ({ ...s, [k]: v }));
@@ -144,11 +148,18 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
   async function submit(ev: React.FormEvent) {
     ev.preventDefault();
     if (!f.full_name.trim() || !f.email.trim()) return setErr("กรอกชื่อ-นามสกุล และอีเมลก่อน");
+    if(isIntern&&f.available_start_date&&f.internship_end_date&&f.internship_end_date<f.available_start_date)return setErr("วันสิ้นสุดต้องอยู่หลังวันเริ่มฝึกงาน");
     if (!f.consent) return setErr("กรุณายินยอมให้เก็บข้อมูลก่อนส่งใบสมัคร");
     setBusy(true);
     setErr(null);
     try {
-      const payload = {
+      let introVideoPath: string|undefined;
+      if(recorded){
+        const type=recorded.blob.type.split(';')[0];const ticket=await fetch('/api/applications/video-upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,size:recorded.blob.size})});
+        if(!ticket.ok)throw new Error(await ticket.text());const signed=await ticket.json();
+        const upload=await fetch(signed.url,{method:'PUT',headers:{'Content-Type':type},body:recorded.blob});if(!upload.ok)throw new Error('อัปโหลดคลิปไม่สำเร็จ ข้อมูลยังอยู่ กรุณาลองส่งใหม่');introVideoPath=signed.path;
+      }
+      const payload = { intro_video_path:introVideoPath,
         applicant_type: type,
         full_name: f.full_name, nickname: f.nickname, age: f.age, phone: f.phone, email: f.email,
         line_id: f.line_id, location: f.location,
@@ -160,7 +171,7 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
         social_links: f.social_links,
         intro_video_url: f.intro_video_url,
         creative_answers: f.creative_answers, attitude_answers: isIntern ? {} : f.attitude_answers,
-        answers: isIntern ? { university: f.university, faculty: f.faculty, internship_months: f.internship_months } : {},
+        answers: isIntern ? { university: f.university, faculty: f.faculty, internship_months: f.internship_months, internship_end_date:f.internship_end_date, internship_season:f.internship_season } : {},
         photo: f.photo || undefined,
         consent_to_store_profile: f.consent,
       };
@@ -168,8 +179,9 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
       });
       if (!r.ok) return setErr((await r.text()) || "ส่งไม่สำเร็จ");
+      if(recorded){const r=indexedDB.open('yuendeaw-intro-video',1);r.onsuccess=()=>{const db=r.result,tx=db.transaction('clips','readwrite');tx.objectStore('clips').delete('intro');tx.oncomplete=()=>db.close()}}
       onDone();
-    } finally {
+    } catch(error) {setErr(error instanceof Error?error.message:"ส่งใบสมัครไม่สำเร็จ กรุณาลองใหม่")} finally {
       setBusy(false);
     }
   }
@@ -229,6 +241,7 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
           <div className="grid sm:grid-cols-2 gap-3">
             <T label="มหาวิทยาลัย" v={f.university} on={(v) => set("university", v)} />
             <T label="คณะ / สาขา" v={f.faculty} on={(v) => set("faculty", v)} />
+            <T label="วันที่สิ้นสุดฝึกงาน" type="date" v={f.internship_end_date} on={(v)=>set("internship_end_date",v)} />
             <T label="ระยะเวลาฝึกงาน (เดือน)" type="number" v={f.internship_months} on={(v) => set("internship_months", v)} ph="เช่น 4" />
           </div>
         </Section>
@@ -275,6 +288,7 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
             <li>ถ้าให้สร้างคอนเทนต์ 1 ชิ้นให้ยืนเดี่ยว คุณอยากทำอะไร</li>
           </ol>
         </div>
+        {recorded&&<div className="mb-4"><p className="mb-2">แนบคลิปที่อัดไว้แล้ว · จะอัปโหลดเมื่อส่งใบสมัคร</p><video controls playsInline src={clipUrl} className="w-full max-h-80 bg-black"/><button type="button" className="mt-2 underline" onClick={()=>{setRecorded(null);setClipUrl("")}}>ใช้ลิงก์คลิปแทน</button></div>}
         <T label="ลิงก์คลิปแนะนำตัว (YouTube / TikTok / Drive)" v={f.intro_video_url} on={(v) => set("intro_video_url", v)} ph="https://..." />
       </Section>
 
