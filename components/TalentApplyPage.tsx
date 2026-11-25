@@ -27,7 +27,7 @@ export default function TalentApplyPage({ initialType }: { initialType?: "full_t
         </div>
 
         {view === "landing" && <Landing onPick={(t) => { setType(t); setView("form"); }} />}
-        {view === "form" && <ApplyForm type={type} onBack={() => initialType ? window.location.assign("/internship") : setView("landing")} onDone={() => setView("done")} />}
+        {view === "form" && <ApplyForm type={type} onBack={() => initialType ? window.location.assign(initialType === "full_time" ? "/apply/team" : "/internship") : setView("landing")} onDone={() => setView("done")} />}
         {view === "done" && <ThankYou />}
       </div>
     </div>
