@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   async rewrites() {
     return { beforeFiles: [
+      { source: "/", has: [{ type: "host", value: "(?:www\\.)?yuendeaw\\.com" }], destination: "/office" },
       { source: "/apply/team", destination: "/join-crew/index.html" },
     ], afterFiles: [
       { source: "/internship", destination: "/internship/index.html" },

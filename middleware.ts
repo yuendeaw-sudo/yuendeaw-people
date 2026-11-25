@@ -40,6 +40,7 @@ export async function middleware(request: NextRequest) {
   // Public routes (no auth required)
   const isPublic =
     path === "/" ||
+    path === "/office" ||
     path.startsWith("/login") ||
     path.startsWith("/apply") || // public application forms
     path.startsWith("/api") || // API routes self-authorize (cron secret, session, etc.)
