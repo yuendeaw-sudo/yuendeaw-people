@@ -5,7 +5,7 @@ export async function middleware(request: NextRequest) {
   // The standalone internship presentation contains no HR data or live application API.
   // Match this namespace exactly; all existing staff routes retain session checks.
   const publicInternshipPath = request.nextUrl.pathname;
-  if (publicInternshipPath === "/internship" || publicInternshipPath.startsWith("/internship/")) {
+  if (publicInternshipPath === "/join-crew" || publicInternshipPath.startsWith("/join-crew/") || publicInternshipPath === "/apply/team" || publicInternshipPath === "/internship" || publicInternshipPath.startsWith("/internship/")) {
     return NextResponse.next();
   }
 

@@ -2,11 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async rewrites() {
-    return [
+    return { beforeFiles: [
+      { source: "/apply/team", destination: "/join-crew/index.html" },
+    ], afterFiles: [
       { source: "/internship", destination: "/internship/index.html" },
       { source: "/internship/apply", destination: "/internship/apply/index.html" },
       { source: "/internship/apply/", destination: "/internship/apply/index.html" },
-    ];
+    ], fallback: [] };
   },
   images: {
     remotePatterns: [
