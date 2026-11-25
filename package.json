@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "test:ai-line": "node --experimental-strip-types --test scripts/line-ai-webhook.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
