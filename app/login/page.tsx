@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/Icon";
 import { Logo } from "@/components/Logo";
+import { localReturnPath } from "@/lib/office-policy";
 
 export default function LoginPage() {
   return (
@@ -17,14 +18,14 @@ export default function LoginPage() {
 function LoginInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/dashboard";
+  const next = localReturnPath(params.get("next"), "/dashboard");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
   const [error, setError] = useState<string | null>(
-    params.get("error") === "oauth" ? "เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองอีกครั้ง" : null
+    params.get("error") === "employee" ? "บัญชีนี้ไม่มีสิทธิ์เข้าออฟฟิศ ต้องเป็นบัญชีพนักงานปัจจุบันที่ HR เพิ่มไว้เท่านั้น" : params.get("error") === "directory" ? "ยังตรวจทะเบียนพนักงานไม่ได้ กรุณาลองใหม่อีกครั้ง" : params.get("error") === "oauth" ? "เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองอีกครั้ง" : null
   );
 
   async function google() {
@@ -51,7 +52,7 @@ function LoginInner() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setError(translate(error.message));
     else {
-      router.push(next);
+      router.push(`/auth/employee-check?next=${encodeURIComponent(next)}`);
       router.refresh();
     }
     setLoading(false);

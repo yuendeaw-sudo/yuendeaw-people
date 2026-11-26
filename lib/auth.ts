@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { AccessContext } from "@/lib/permissions";
+import { isCurrentStaff } from "@/lib/office-policy";
 
 /**
  * Build the AccessContext for the current request from the Supabase session.
@@ -21,8 +22,10 @@ export const getAccessContext = cache(async (): Promise<AccessContext | null> =>
   // app_users + employee are independent (both keyed on user.id) → fetch together
   const [{ data: appUser }, { data: employee }] = await Promise.all([
     supabase.from("app_users").select("is_owner, full_name, email").eq("id", user.id).maybeSingle(),
-    supabase.from("employees").select("id, status, employment_types(key)").eq("user_id", user.id).maybeSingle(),
+    supabase.from("employees").select("id, user_id, status, employment_types(key)").eq("user_id", user.id).maybeSingle(),
   ]);
+
+  if (!isCurrentStaff(employee as unknown as Parameters<typeof isCurrentStaff>[0], user.id)) return null;
 
   const isOwner = appUser?.is_owner ?? false;
   const employeeId = employee?.id ?? null;

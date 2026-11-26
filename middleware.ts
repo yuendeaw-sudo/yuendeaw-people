@@ -2,6 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  // The AI gateway verifies its own host-bound office session on every request.
+  if (request.nextUrl.hostname === "aioffice.yuendeaw.com") return NextResponse.next();
   // The standalone internship presentation contains no HR data or live application API.
   // Match this namespace exactly; all existing staff routes retain session checks.
   const publicInternshipPath = request.nextUrl.pathname;
@@ -41,6 +43,7 @@ export async function middleware(request: NextRequest) {
   const isPublic =
     path === "/" ||
     path === "/office" ||
+    path === "/oauth/consent" ||
     path.startsWith("/login") ||
     path.startsWith("/apply") || // public application forms
     path.startsWith("/api") || // API routes self-authorize (cron secret, session, etc.)

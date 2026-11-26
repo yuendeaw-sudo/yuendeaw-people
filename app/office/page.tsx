@@ -3,6 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { Users, Sparkles, Megaphone, LogIn, Heart, Compass } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getOfficeIdentity } from "@/lib/office-client";
+import { employeeForUser } from "@/lib/office-employee";
+import { headers } from "next/headers";
 import styles from "./portal.module.css";
 
 export const metadata: Metadata = {
@@ -19,7 +22,10 @@ const rooms = [
 
 export default async function OfficePage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  const user = await getOfficeIdentity() || (authUser ? await employeeForUser(authUser) : null);
+  const mainHost = (await headers()).get("host") === "www.yuendeaw.com";
+  const loginHref = mainHost ? "/auth/office/start" : "https://people.yuendeaw.com/login?next=%2Foffice";
   return (
     <div className={styles.portal}>
       <header className={styles.header}>
@@ -27,7 +33,7 @@ export default async function OfficePage() {
           <Image src="/join-crew/assets/yuendeaw-logo.png" alt="ยืนเดี่ยว" width={108} height={52} className={styles.logo} />
           <span>บ้านของทีมเรา<small>YUENDEAW OFFICE</small></span>
         </Link>
-        <a href={user ? "#workspaces" : "https://people.yuendeaw.com/login?next=%2Foffice"} className={styles.login}>
+        <a href={user ? "#workspaces" : loginHref} className={styles.login}>
           <LogIn size={18} aria-hidden="true" />{user ? "เลือกพื้นที่ทำงาน" : "เข้าสู่ระบบทีมงาน"}
         </a>
       </header>
