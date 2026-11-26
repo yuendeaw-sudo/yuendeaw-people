@@ -45,7 +45,7 @@ export default async function ApplicationDetail({ params }: { params: Promise<{ 
 
   const st = statusOf(a.stage);
   const rec = HR_RECOMMENDATION.find((r) => r.key === a.hr_recommendation);
-  const Q = questionsFor(a.applicant_type);
+  const Q = questionsFor(a.applicant_type, a.answers?.creative_question_version);
   const edu = a.answers ?? {};
   const embed = ytEmbed(a.intro_video_url);
   const social = a.social_links ?? {};

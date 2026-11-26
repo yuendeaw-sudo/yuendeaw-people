@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { emailShell, sendEmail, emailRow } from "@/lib/email";
-import { ROLE_LABEL } from "@/lib/applications";
+import { CREATIVE_INTERN_SET, ROLE_LABEL } from "@/lib/applications";
 
 export const runtime = "nodejs";
 
@@ -14,6 +14,14 @@ export async function POST(req: Request) {
   if (!b.consent_to_store_profile) return new Response("ต้องยินยอมให้เก็บข้อมูลก่อนส่ง", { status: 400 });
 
   const applicantType = b.applicant_type === "internship" ? "internship" : "full_time";
+
+  if (applicantType === "internship" && b.answers?.creative_question_version === CREATIVE_INTERN_SET.version) {
+    for (const q of CREATIVE_INTERN_SET.questions) {
+      const answer = b.creative_answers?.[q.id];
+      if (typeof answer !== "string" || !answer.trim()) return new Response("กรุณาตอบคำถามครีเอทีฟให้ครบทั้ง 5 ข้อ", { status: 400 });
+      if (q.type === "single" && !q.options!.some((option, i) => answer === `${String.fromCharCode(65 + i)}. ${option}`)) return new Response("กรุณาเลือกคำตอบข้อ 2 และ 3 ข้อละหนึ่งตัวเลือก", { status: 400 });
+    }
+  }
 
   const row: any = {
     kind: applicantType === "internship" ? "internship" : "job",
