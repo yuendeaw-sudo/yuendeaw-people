@@ -9,6 +9,7 @@ import {
   WORK_TYPES_FULL,
   SOCIAL_KEYS,
   questionsFor,
+  CREATIVE_INTERN_SET,
 } from "@/lib/applications";
 
 type View = "landing" | "form" | "done";
@@ -92,6 +93,7 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
     social_links: {} as Record<string, string>,
     proud_works: [{ title: "", why: "" }, { title: "", why: "" }, { title: "", why: "" }],
     intro_video_url: "",
+    creative_intern_answers: {} as Record<string,string>,
     creative_answers: { q1: "", q2: "", q3: "" },
     attitude_answers: { q1: "", q2: "", q3: "" },
     university: "", faculty: "", internship_months: "",
@@ -99,7 +101,8 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
     consent: false,
   });
   const isIntern = type === "internship";
-  const Q = questionsFor(type);
+  const isCreativeIntern = isIntern && f.interested_roles.includes("creative_content_creator");
+  const Q = questionsFor(type, isCreativeIntern ? CREATIVE_INTERN_SET.version : undefined);
 
   // อ่านรูป → ย่อ (สูงสุด 600px) → jpeg dataURL พื้นขาว
   async function readPhoto(file: File) {
@@ -170,8 +173,8 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
         resume_url: f.resume_url, portfolio_url: f.portfolio_url,
         social_links: f.social_links,
         intro_video_url: f.intro_video_url,
-        creative_answers: f.creative_answers, attitude_answers: isIntern ? {} : f.attitude_answers,
-        answers: isIntern ? { university: f.university, faculty: f.faculty, internship_months: f.internship_months, internship_end_date:f.internship_end_date, internship_season:f.internship_season } : {},
+        creative_answers: isCreativeIntern ? Object.fromEntries(CREATIVE_INTERN_SET.questions.map(q=>{const answer=f.creative_intern_answers[q.id];return [q.id,q.type==="single" ? `${answer}. ${q.options![answer.charCodeAt(0)-65]}` : answer]})) : f.creative_answers, attitude_answers: isIntern ? {} : f.attitude_answers,
+        answers: isIntern ? { creative_question_version: isCreativeIntern ? CREATIVE_INTERN_SET.version : undefined, university: f.university, faculty: f.faculty, internship_months: f.internship_months, internship_end_date:f.internship_end_date, internship_season:f.internship_season } : {},
         photo: f.photo || undefined,
         consent_to_store_profile: f.consent,
       };
@@ -294,13 +297,15 @@ function ApplyForm({ type, onBack, onDone }: { type: "full_time" | "internship";
 
       {/* คำถามหลัก (ครีเอทีฟ / สำหรับผู้ฝึกงาน) */}
       <Section title={Q.primaryLabel}>
-        {Q.primary.map((q, i) => (
+        {isCreativeIntern ? CREATIVE_INTERN_SET.questions.map((q,i)=>(<fieldset key={q.id} className="mb-6"><legend className="label whitespace-pre-line">{i+1}. {q.prompt}</legend>{q.type === "single" ? q.options!.map((option,j)=>{const value=String.fromCharCode(65+j);return <label key={value} className="flex items-start gap-3 my-3"><input type="radio" name={q.id} required value={value} checked={f.creative_intern_answers[q.id]===value} onChange={()=>set("creative_intern_answers",{...f.creative_intern_answers,[q.id]:value})}/><span>{value}. {option}</span></label>}) : <textarea className="input" rows={4} required aria-label={q.prompt} value={f.creative_intern_answers[q.id]||""} onChange={e=>set("creative_intern_answers",{...f.creative_intern_answers,[q.id]:e.target.value})}/>}</fieldset>)) : (
+        Q.primary.map((q, i) => (
           <div key={i} className="mb-3">
             <label className="label">{i + 1}. {q}</label>
             <textarea className="input" rows={2} value={f.creative_answers[`q${i + 1}`]}
               onChange={(e) => set("creative_answers", { ...f.creative_answers, [`q${i + 1}`]: e.target.value })} />
           </div>
-        ))}
+        ))
+        )}
       </Section>
 
       {/* คำถามทัศนคติ (เฉพาะพนักงานประจำ) */}

@@ -1,3 +1,5 @@
+import creativeInternSet from "@/public/internship/apply/creative-questions.json";
+export const CREATIVE_INTERN_SET = creativeInternSet;
 // สายงานที่สนใจ (เลือกได้หลายข้อ จาก 4 หมวด)
 export const INTERESTED_ROLES = [
   { key: "creative_content_creator", label: "Creative / Content Creator", emoji: "🎬" },
@@ -95,7 +97,8 @@ export const INTERN_QUESTIONS = [
 ];
 
 // ฟิลด์/คำถามตามประเภทผู้สมัคร
-export function questionsFor(type: string) {
+export function questionsFor(type: string, version?: string) {
+  if(type === "internship" && version === CREATIVE_INTERN_SET.version) return { primary: CREATIVE_INTERN_SET.questions.map(q=>q.prompt), attitude: [] as string[], primaryLabel: "คำถามครีเอทีฟ" };
   return type === "internship"
     ? { primary: INTERN_QUESTIONS, attitude: [] as string[], primaryLabel: "คำถามสำหรับผู้ฝึกงาน" }
     : { primary: CREATIVE_QUESTIONS, attitude: ATTITUDE_QUESTIONS, primaryLabel: "คำถามครีเอทีฟ" };
