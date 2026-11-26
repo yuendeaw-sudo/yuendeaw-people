@@ -1,5 +1,6 @@
 "use client";
 
+import InternHomeworkPanel from "@/components/applications/InternHomeworkPanel";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icon";
@@ -35,6 +36,7 @@ export function ApplicationActions({
 
   return (
     <div className="space-y-4">
+      <InternHomeworkPanel app={app} canEdit={canEdit}/>
       {canEdit && <HrPanel app={app} employees={employees} onDone={refresh} />}
       {isOwner && <OwnerPanel app={app} employees={employees} onDone={refresh} />}
       {(isOwner || canConvert) && <ConvertPanel app={app} employees={employees} teams={teams} onDone={refresh} />}

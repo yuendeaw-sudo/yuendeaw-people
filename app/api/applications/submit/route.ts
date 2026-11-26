@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { emailShell, sendEmail, emailRow } from "@/lib/email";
-import { CREATIVE_INTERN_SET, ROLE_LABEL } from "@/lib/applications";
+import { ROLE_LABEL } from "@/lib/applications";
 
 export const runtime = "nodejs";
 
@@ -15,14 +15,9 @@ export async function POST(req: Request) {
 
   const applicantType = b.applicant_type === "internship" ? "internship" : "full_time";
 
-  if (applicantType === "internship" && b.answers?.creative_question_version === CREATIVE_INTERN_SET.version) {
-    for (const q of CREATIVE_INTERN_SET.questions) {
-      const answer = b.creative_answers?.[q.id];
-      if (typeof answer !== "string" || !answer.trim()) return new Response("กรุณาตอบคำถามครีเอทีฟให้ครบทั้ง 5 ข้อ", { status: 400 });
-      if (q.type === "single" && !q.options!.some((option, i) => answer === `${String.fromCharCode(65 + i)}. ${option}`)) return new Response("กรุณาเลือกคำตอบข้อ 2 และ 3 ข้อละหนึ่งตัวเลือก", { status: 400 });
-    }
-  }
-
+  // Reserved staff-only workflow data must never be accepted from public applications.
+  const applicationAnswers = { ...(b.answers && typeof b.answers === "object" && !Array.isArray(b.answers) ? b.answers : {}) };
+  delete applicationAnswers.homework;
   const row: any = {
     kind: applicantType === "internship" ? "internship" : "job",
     applicant_type: applicantType,
@@ -46,7 +41,7 @@ export async function POST(req: Request) {
     intro_video_url: b.intro_video_url || null,
     creative_answers: b.creative_answers && typeof b.creative_answers === "object" ? b.creative_answers : {},
     attitude_answers: b.attitude_answers && typeof b.attitude_answers === "object" ? b.attitude_answers : {},
-    answers: b.answers && typeof b.answers === "object" ? b.answers : {},
+    answers: applicationAnswers,
     consent_to_store_profile: true,
     stage: "new",
   };
