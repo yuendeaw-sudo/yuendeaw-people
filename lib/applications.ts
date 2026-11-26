@@ -1,4 +1,4 @@
-import creativeInternSet from "@/public/internship/apply/creative-questions.json";
+import creativeInternSet from "@/lib/creative-intern-questions.json";
 export const CREATIVE_INTERN_SET = creativeInternSet;
 // สายงานที่สนใจ (เลือกได้หลายข้อ จาก 4 หมวด)
 export const INTERESTED_ROLES = [
@@ -38,6 +38,10 @@ export const WORK_TYPES_FULL = [
 
 // Status pipeline
 export const APP_STATUS: Record<string, { label: string; tone: string }> = {
+  homework_shortlisted: { label: "เข้ารอบ · รอส่งการบ้าน", tone: "amber" },
+  homework_sent: { label: "ส่งการบ้านแล้ว", tone: "brand" },
+  homework_submitted: { label: "ส่งคำตอบแล้ว · รอตรวจ", tone: "amber" },
+  homework_reviewed: { label: "ตรวจการบ้านแล้ว", tone: "mint" },
   new: { label: "ใหม่", tone: "grape" },
   hr_screening: { label: "รอ HR คัดกรอง", tone: "amber" },
   owner_review: { label: "รอ Owner พิจารณา", tone: "brand" },
